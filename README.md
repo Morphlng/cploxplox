@@ -182,8 +182,6 @@ You can return nothing, e.g. `return;`, or return a value. Return can only be us
 
 ####  ImportStmt
 
-最新版本的cploxplox加入了模块概念，就像python的import、c++的include，你可以引用另一个lox文件中定义的函数、类、与全局变量：
-
 In the latest update, I introduced `import`. It's similar to Python or TypeScript, you can import **global** functions, class, and variables from another lox script.
 
 ```typescript
