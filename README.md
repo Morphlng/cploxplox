@@ -127,7 +127,7 @@ Retired
 
 > Lox is not Python, you can't leave out the "()"
 
-#### 4.2.3 forStmt
+#### ForStmt
 
 We have while and for loop, they all follow the syntax of C++.
 
@@ -174,13 +174,13 @@ lox > for(var i = 0; i < 10; i++){
 5
 ```
 
-#### 4.2.6 returnStmt
+#### ReturnStmt
 
 You can return nothing, e.g. `return;`, or return a value. Return can only be used inside a function.
 
 > Note: you can't return any value except nil in a class init function.
 
-#### 4.2.7 importStmt
+####  ImportStmt
 
 最新版本的cploxplox加入了模块概念，就像python的import、c++的include，你可以引用另一个lox文件中定义的函数、类、与全局变量：
 
@@ -221,7 +221,7 @@ lox > list = [1,2,3];
 lox > list[0] = "Hello";
 ```
 
-#### 4.3.2 Lambda
+#### Lambda
 
 When declaring function, if there is no name after keyword `func`, then it will be a lambda function.
 
@@ -232,7 +232,7 @@ lox > func (a,b){return a+b;}(1,2);
 
 > Lambda is an expression，so it will return a value. You can assign it to a variable, pass it to another function, all sorts of things.
 
-## 五、Built-in functions and classes
+## Built-in functions and classes
 
 Go see [scripts/doc/Built_in_Expansion_Guide.md](./scripts/doc/Built_in_Expansion_Guide.md)
 
