@@ -1,0 +1,37 @@
+# Example for list manipulation
+
+func partition(list, low, high)
+{
+    var pivot = list[low];
+  
+    while(low < high) {
+        while(low < high and list[high] >= pivot)
+            high--;
+    
+        list[low] = list[high];
+        
+        while(low < high and list[low] <= pivot)
+            low++;
+        
+        list[high] = list[low];
+    }
+
+    list[low] = pivot;
+  
+    return low;
+}
+
+func QSort(list, low, high)
+{
+    if(low < high) {
+        var pivot = partition(list, low, high);
+        QSort(list, low, pivot-1);
+        QSort(list, pivot+1, high);
+    }
+}
+
+var list = [1,6,4,3,2,5,9];
+print(list);
+
+QSort(list, 0, list.length()-1);
+print("After sort:", list);

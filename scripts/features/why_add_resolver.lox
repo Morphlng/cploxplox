@@ -1,0 +1,14 @@
+var a = "global";
+{
+    func showA() {
+        print(a);
+    }
+
+    showA();
+    var a = "block";
+    showA();
+}
+
+# before adding the resolver, this code output "global" "block"
+# after adding the resolver, this code output "global" "global", 
+# which make more sense because when showA() is defined, the "a" point to outer "global", and a reference should be static.
