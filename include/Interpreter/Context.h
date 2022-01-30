@@ -48,8 +48,6 @@ namespace CXX {
 
 		~ScopedContext();
 
-		void decreseRefCount();
-
 	private:
 		// 这里使用一个引用成员，ref指向Interpreter原本的Context
 		ContextPtr& ref;

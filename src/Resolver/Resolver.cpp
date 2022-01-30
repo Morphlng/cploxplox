@@ -362,12 +362,6 @@ namespace CXX {
 		declare(classDeclStmt->name);
 		define(classDeclStmt->name);
 
-		beginScope();
-		scopes.back()["this"] = true;
-
-		// 利用析构函数保证endScope运行
-		Finally task{ [&]() {endScope(); currentClass = enclosing; } };
-
 		if (classDeclStmt->superClass)
 		{
 			currentClass = ClassType::SUBCLASS;
@@ -379,6 +373,11 @@ namespace CXX {
 			resolve(ptr);
 			scopes.back()["super"] = true;
 		}
+
+		beginScope();
+		scopes.back()["this"] = true;
+		// 利用析构函数保证endScope运行
+		Finally task{ [&]() {endScope(); currentClass = enclosing; } };
 
 		for (auto& method : classDeclStmt->methods)
 		{

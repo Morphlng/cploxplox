@@ -303,7 +303,7 @@ namespace CXX {
 	void Lexer::make_minus_minus()
 	{
 		Position start = pos;
-		advance(); // 跳过第一个'+'
+		advance(); // 跳过第一个'-'
 
 		if (current_char == '-')
 		{

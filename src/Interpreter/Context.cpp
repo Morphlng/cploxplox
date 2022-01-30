@@ -125,33 +125,12 @@ namespace CXX {
 
 	ScopedContext::~ScopedContext()
 	{
-		// Context和Object之间循环引用，无法自动释放
-		// 我们根据情况手动释放，避免内存泄漏
+		// Context和Function之间循环引用，无法自动释放
+		// 因此我们需要手动释放
 		if (shouldClear)
-			decreseRefCount();
+			ref->variables.clear();
 
 		// 析构时，恢复原本的Context
 		ref = previous_copy;
 	}
-
-	void ScopedContext::decreseRefCount()
-	{
-		for (auto& var : ref->variables)
-		{
-			switch (var.second.type)
-			{
-			case ObjectType::BOOL:
-			case ObjectType::NIL:
-			case ObjectType::STRING:
-			case ObjectType::NUMBER:
-				break;
-
-			default:
-				// TODO：显示调用析构函数不是好的做法
-				// 但是能解决问题
-				var.second.~Object();
-			}
-		}
-	}
-
 }

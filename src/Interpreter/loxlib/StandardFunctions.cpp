@@ -5,16 +5,26 @@
 #include <chrono>
 #include <algorithm>
 
-namespace CXX {
+#if defined(_MSC_VER) || defined(WIN64) || defined(_WIN64) || defined(__WIN64__) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#define WINDOWS
+#define UNICODE
+#include <Windows.h>
+#else
+#define UNIX
+#include <dlfcn.h>
+#endif
+
+namespace CXX
+{
 
 	NativeFunction::NativeFunction(Func callable, std::string name, int arity, int optional)
 		: Callable(Callable::CallableType::FUNCTION),
-		callable(std::move(callable)), identifier(std::move(name)),
-		_arity(arity), _optional(optional)
+		  callable(std::move(callable)), identifier(std::move(name)),
+		  _arity(arity), _optional(optional)
 	{
 	}
 
-	Object NativeFunction::call(Interpreter& interpreter, const std::vector<Object>& arguments)
+	Object NativeFunction::call(Interpreter &interpreter, const std::vector<Object> &arguments)
 	{
 		return callable(interpreter, arguments);
 	}
@@ -49,39 +59,99 @@ namespace CXX {
 
 	namespace standardFunctions
 	{
-		Clock::Clock() : NativeFunction([](Interpreter& interpreter, const std::vector<Object>& args)
-			{
-				using namespace std::chrono;
-				double ms = static_cast<double>(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
-				return Object(ms);
-			},
-			"clock", 0) {}
+		Clock::Clock() : NativeFunction([](Interpreter &interpreter, const std::vector<Object> &args)
+										{
+											using namespace std::chrono;
+											double ms = static_cast<double>(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
+											return Object(ms);
+										},
+										"clock", 0)
+		{
+		}
 
-		Str::Str() : NativeFunction([](Interpreter& interpreter, const std::vector<Object>& args)
-			{ return Object(args[0].to_string()); },
-			"str", 1) {}
+		Str::Str() : NativeFunction([](Interpreter &interpreter, const std::vector<Object> &args)
+									{ return Object(args[0].to_string()); },
+									"str", 1) {}
 
-		TypeOf::TypeOf() : NativeFunction([](Interpreter& interpreter, const std::vector<Object>& args)
-			{ return Object(std::string(ObjectTypeName(args[0].type))); },
-			"typeof", 1) {}
+		TypeOf::TypeOf() : NativeFunction([](Interpreter &interpreter, const std::vector<Object> &args)
+										  { return Object(std::string(ObjectTypeName(args[0].type))); },
+										  "typeof", 1) {}
 
-		Print::Print() : NativeFunction([](Interpreter& interpreter, const std::vector<Object>& args)
-			{
-				for (auto const& obj : args)
-				{
-					std::cout << obj.to_string() << " ";
-				}
-				std::cout << std::endl;
-				return Object();
-			},
-			"print", -1) {}
+		Print::Print() : NativeFunction([](Interpreter &interpreter, const std::vector<Object> &args)
+										{
+											for (auto const &obj : args)
+											{
+												std::cout << obj.to_string() << " ";
+											}
+											std::cout << std::endl;
+											return Object();
+										},
+										"print", -1)
+		{
+		}
+
+		Loadlib::Loadlib() : NativeFunction([](Interpreter &interpreter, const std::vector<Object> &args)
+											{
+												using getClass = NativeClass *(*)();
+												using getClassName = const char *(*)();
+												using getFunc = NativeFunction *(*)();
+												using getFuncName = const char *(*)();
+
+#ifdef UNIX
+#define LoadLibrary(x) dlopen(x, RTLD_LAZY)
+#define GetProcAddress(x, y) dlsym(x, y)
+												std::string libpath = args[0].getString();
+#else
+												std::wstring libpath = s2ws(args[0].getString());
+#endif
+												auto hDll = LoadLibrary(libpath.c_str());
+
+												if (hDll)
+												{
+													std::string baseFunc = "getFunc_";
+													std::string baseFuncName = "getFuncName_";
+													for (int i = 0;; i++)
+													{
+														auto funcFn = (getFunc)GetProcAddress(hDll, (baseFunc + std::to_string(i)).c_str());
+														auto nameFn = (getFuncName)GetProcAddress(hDll, (baseFuncName + std::to_string(i)).c_str());
+														if (!funcFn || !nameFn)
+															break;
+
+														CallablePtr callable(funcFn());
+														interpreter.context->set(std::string(nameFn()), Object(std::move(callable)));
+													}
+
+													baseFunc = "getClass_";
+													baseFuncName = "getClassName_";
+													for (int i = 0;; i++)
+													{
+														auto funcFn = (getClass)GetProcAddress(hDll, (baseFunc + std::to_string(i)).c_str());
+														auto nameFn = (getClassName)GetProcAddress(hDll, (baseFuncName + std::to_string(i)).c_str());
+														if (!funcFn || !nameFn)
+															break;
+
+														CallablePtr callable(funcFn());
+														interpreter.context->set(std::string(nameFn()), Object(std::move(callable)));
+													}
+												}
+
+												return Object();
+#ifdef UNIX
+#undef LoadLibrary
+#undef GetProcAddress
+#endif
+											},
+											"loadlib", 1)
+		{
+		}
 	}
 
 	NativeMethod::NativeMethod(NativeFunction::Func callable, int arity, int optional, ContextPtr env)
 		: NativeFunction(std::move(callable), "", arity, optional), context(std::move(env))
-	{}
+	{
+	}
 
-	Object NativeMethod::call(Interpreter& interpreter, const std::vector<Object>& arguments)
+	Object NativeMethod::call(Interpreter &interpreter, const std::vector<Object> &arguments)
 	{
 		ScopedContext scope(interpreter.context, context, false);
 

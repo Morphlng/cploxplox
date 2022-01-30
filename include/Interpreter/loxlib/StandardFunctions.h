@@ -78,6 +78,12 @@ namespace CXX {
 		public:
 			Print();
 		};
+
+		class Loadlib :public NativeFunction
+		{
+		public:
+			Loadlib();
+		};
 	}
 
 }

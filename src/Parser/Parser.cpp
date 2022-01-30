@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <iostream>
 #include "Parser/Parser.h"
 #include "Parser/ParsingError.h"
 #include "Parser/Stmt.h"

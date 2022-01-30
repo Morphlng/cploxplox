@@ -15,10 +15,10 @@ namespace CXX {
 
 	public:
 		static bool DEBUG;
+
 		static Interpreter interpreter;
 
 		// Point to current exectuing code position
-		// Reduce the sizeof Object
 		static Position* pos_start;
 		static Position* pos_end;
 

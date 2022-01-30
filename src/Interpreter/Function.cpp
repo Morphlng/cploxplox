@@ -2,7 +2,6 @@
 #include "Interpreter/Function.h"
 #include "Interpreter/Interpreter.h"
 #include "Runner.h"
-#include <iostream>
 
 namespace CXX {
 

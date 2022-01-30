@@ -350,10 +350,10 @@ namespace CXX {
 	std::string ImportStmt::to_string() const
 	{
 		std::string result = "import { ";
-		for (auto& p : symbols) {
-			result += p.first.lexeme;
-			if (p.second) {
-				result += " as " + p.second->lexeme;
+		for (auto& [name, alias] : symbols) {
+			result += name.lexeme;
+			if (alias) {
+				result += " as " + alias->lexeme;
 			}
 			result += ",";
 		}

@@ -194,9 +194,9 @@ namespace CXX {
 		if (!fields.empty())
 		{
 			result += "\n{\n";
-			for (auto& p : fields)
+			for (auto& [name, prop] : fields)
 			{
-				result += format("  %s: %s\n", p.first.c_str(), p.second.to_string().c_str());
+				result += format("  %s: %s\n", name.c_str(), prop.to_string().c_str());
 			}
 			result.push_back('}');
 		}

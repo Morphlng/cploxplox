@@ -76,6 +76,8 @@ namespace CXX {
 	// 每个Expr的解释结果应为一个Object
 	struct ExprVisitor
 	{
+		virtual ~ExprVisitor() = default;
+
 		virtual Object visit(const BinaryExpr* binaryExpr) = 0;
 
 		virtual Object visit(const UnaryExpr* unaryExpr) = 0;

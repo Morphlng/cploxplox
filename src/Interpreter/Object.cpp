@@ -388,16 +388,19 @@ namespace CXX {
 
 		case ObjectType::INSTANCE:
 		{
+			auto& linstance = std::get<InstancePtr>(lhs.value);
+			if (linstance == std::get<InstancePtr>(rhs.value))
+				return true;
+
 			// 没有判断rhs与lhs是否为同类型实例
 			// 如果有需求，用户应在__equal__中自己定义
-
-			Object func = std::get<InstancePtr>(lhs.value)->get("__equal__");
+			Object func = linstance->get("__equal__");
 			if (func.isNil())
 				return false;
 			else
 			{
 				Object result = func.getCallable()->call(Runner::interpreter, { rhs });
-				return result.getBoolean();
+				return result.is_true();
 			}
 		}
 

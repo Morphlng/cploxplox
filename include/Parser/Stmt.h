@@ -60,6 +60,8 @@ namespace CXX {
 
 	struct StmtVisitor
 	{
+		virtual ~StmtVisitor() = default;
+
 		virtual void visit(const ExpressionStmt* expressionStmt) = 0;
 
 		virtual void visit(const VarDeclarationStmt* varStmt) = 0;

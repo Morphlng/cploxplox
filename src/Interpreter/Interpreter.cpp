@@ -56,8 +56,8 @@ namespace CXX
 
 	void Interpreter::visit(std::shared_ptr<FuncDeclarationStmt> funcDeclarationStmt)
 	{
-		CallablePtr function = std::make_shared<Function>(Object::Nil(), funcDeclarationStmt, context);
-		context->set(funcDeclarationStmt->name, Object(function));
+		std::shared_ptr<Function> function = std::make_shared<Function>(Object::Nil(), funcDeclarationStmt, context);
+		context->set(funcDeclarationStmt->name, Object(std::move(function)));
 	}
 
 	void Interpreter::visit(const ClassDeclarationStmt *classDeclStmt)
@@ -90,7 +90,7 @@ namespace CXX
 		}
 
 		std::unordered_map<std::string, CallablePtr> methods;
-		CallablePtr classPtr = std::make_shared<Class>(classDeclStmt->name.lexeme, methods, std::move(superClass));
+		std::shared_ptr<Class> classPtr = std::make_shared<Class>(classDeclStmt->name.lexeme, methods, std::move(superClass));
 		context->change(classDeclStmt->name, Object(classPtr));
 
 		// 因为我们需要给类成员函数绑定所处类，因此我们只能先定义类，再添加函数
@@ -102,13 +102,14 @@ namespace CXX
 				std::string func_name = method->name.lexeme;
 				methods[func_name] = std::make_shared<Function>(classObject, method, context);
 			}
-			std::dynamic_pointer_cast<Class>(classObject.getCallable())->methods = std::move(methods);
+			classPtr->methods = std::move(methods);
 		}
 	}
 
 	void Interpreter::visit(const BlockStmt *blockStmt)
 	{
-		std::unique_ptr<Finally> task;
+		// 循环体，判断语句的输出控制
+		std::unique_ptr<Finally> task{nullptr};
 		if (replEcho)
 		{
 			replEcho = false;
@@ -227,6 +228,7 @@ namespace CXX
 			{
 				throw RuntimeError(importStmt->pos_start, importStmt->pos_end, "Failed to import Module, error occured");
 			}
+			m_modules.emplace(importStmt->filepath.lexeme, importModule);
 		}
 
 		// import { * } from "module"
@@ -371,8 +373,8 @@ namespace CXX
 
 	Object Interpreter::visit(std::shared_ptr<LambdaExpr> lambdaExpr)
 	{
-		CallablePtr function = std::make_shared<LambdaFunction>(lambdaExpr, context);
-		return Object(function);
+		std::shared_ptr<LambdaFunction> function = std::make_shared<LambdaFunction>(lambdaExpr, context);
+		return Object(std::move(function));
 	}
 
 	Object Interpreter::visit(const OrExpr *orExpr)
@@ -507,11 +509,20 @@ namespace CXX
 		if (callable->arity() != -1 && (arg_size < callable->required_params() || arg_size > callable->arity()))
 		{
 			throw RuntimeError(callExpr->pos_start, callExpr->pos_end,
-							   format("Function expected %d argument(s), including %d optional, instead got %d", callable->arity(), callable->required_params(), arg_size));
+							   format("Function expected %d argument(s), %d is required, only got %d", callable->arity(), callable->required_params(), arg_size));
 		}
 
 		Callable *prev = currentFunction;
 		currentFunction = callable.get();
+
+		std::unique_ptr<Finally> task{nullptr};
+		if (replEcho)
+		{
+			replEcho = false;
+			task = std::make_unique<Finally>([&]()
+											 { replEcho = true; });
+		}
+
 		Object result = callable->call(*this, args);
 		currentFunction = prev;
 
@@ -654,17 +665,18 @@ namespace CXX
 	void Interpreter::loadPresetEnvironment()
 	{
 		// 内置函数
-		CallablePtr clock = std::make_shared<standardFunctions::Clock>();
-		CallablePtr str = std::make_shared<standardFunctions::Str>();
-		CallablePtr typo = std::make_shared<standardFunctions::TypeOf>();
-		CallablePtr print = std::make_shared<standardFunctions::Print>();
+		auto clock = std::make_shared<standardFunctions::Clock>();
+		auto str = std::make_shared<standardFunctions::Str>();
+		auto typo = std::make_shared<standardFunctions::TypeOf>();
+		auto print = std::make_shared<standardFunctions::Print>();
+		auto loadlib = std::make_shared<standardFunctions::Loadlib>();
 
 		// 内置类
-		CallablePtr StringClass = std::make_shared<String>();
-		CallablePtr ListClass = std::make_shared<List>();
+		auto StringClass = std::make_shared<String>();
+		auto ListClass = std::make_shared<List>();
 
 		std::vector<Object> built_in_functions = {Object(std::move(clock)), Object(std::move(str)),
-												  Object(std::move(typo)), Object(std::move(print)),
+												  Object(std::move(typo)), Object(std::move(print)), Object(std::move(loadlib)),
 												  Object(std::move(StringClass)), Object(std::move(ListClass))};
 
 		for (auto const &func : built_in_functions)
@@ -754,14 +766,16 @@ namespace CXX
 			return nullptr;
 		}
 
-		Interpreter interpreter;
-		// 模块中不运行__main__下的代码
-		interpreter.globalContext->set("__name__", Object(filepath.lexeme));
-		// 如果有RuntimeError，会被Throw
-		interpreter.interpret(blockStmt->statements);
-		interpreter.context->variables.erase("__name__");
+		ContextPtr moduleEnv = std::make_shared<Context>(presetContext);
+		moduleEnv->set("__name__", Object(filepath.lexeme));
 
-		return std::make_shared<Module>(interpreter.context->variables);
+		ScopedContext scope(context, moduleEnv, false);
+
+		interpret(blockStmt->statements);
+
+		moduleEnv->variables.erase("__name__");
+
+		return std::make_shared<Module>(moduleEnv->variables);
 	}
 
 	Object Interpreter::getReturn()

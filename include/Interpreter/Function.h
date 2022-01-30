@@ -78,6 +78,7 @@ namespace CXX {
 
 		// 闭包，当前函数定义时所位于的外部环境
 		// 一旦函数内调用了"自由变量"，就需要保存闭包
+		// TODO: Context和Function循环引用，内存泄漏
 		ContextPtr closure;
 
 	private:
