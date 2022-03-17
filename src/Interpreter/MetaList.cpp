@@ -25,7 +25,10 @@ namespace CXX {
 
 	Object MetaList::pop()
 	{
-		assertBound(-1);
+		if (items.empty()) {
+			throw RuntimeError(Runner::pos_start, Runner::pos_end, "Poping from empty List");
+		}
+
 		Object ret = items.back();
 		items.pop_back();
 		return ret;
@@ -33,12 +36,9 @@ namespace CXX {
 
 	void MetaList::remove(const Object& val)
 	{
-		for (auto it = items.begin(); it != items.end(); it++) {
-			if (*it == val) {
-				items.erase(it);
-				break;
-			}
-		}
+		auto it = std::find(items.begin(), items.end(), val);
+		if (it != items.end())
+			items.erase(it);
 	}
 
 	void MetaList::unshift(const Object& val)
@@ -49,18 +49,12 @@ namespace CXX {
 	Object& MetaList::at(int index)
 	{
 		assertBound(index);
-		if (index < 0)
-			return items.at(items.size() + index);
-
 		return items.at(index);
 	}
 
 	Object MetaList::indexOf(const Object& val, int fromIndex)
 	{
 		assertBound(fromIndex);
-		if (fromIndex < 0)
-			fromIndex = items.size() + fromIndex;
-
 		auto pos = std::find(items.begin() + fromIndex, items.end(), val);
 		if (pos != items.end())
 			return Object((double)(pos - items.begin()));
@@ -71,9 +65,6 @@ namespace CXX {
 	Object MetaList::lastIndexOf(const Object& val, int fromIndex)
 	{
 		assertBound(fromIndex);
-		if (fromIndex < 0)
-			fromIndex = items.size() + fromIndex;
-
 		auto pos = std::find(items.rbegin() + fromIndex, items.rend(), val);
 		if (pos != items.rend())
 			return Object((double)(items.size() - (pos - items.rbegin()) - 1));
@@ -111,6 +102,17 @@ namespace CXX {
 		return Object(std::move(instance));
 	}
 
+	Object MetaList::slice(int fromIndex, int endIndex)
+	{
+		assertBound(fromIndex);
+		assertBound(endIndex);
+		if (fromIndex > endIndex) {
+			throw RuntimeError(Runner::pos_start, Runner::pos_end, "invalid range of List");
+		}
+
+		return Object(List::instantiate(std::vector<Object>(items.begin() + fromIndex, items.begin() + endIndex)));
+	}
+
 	std::string MetaList::to_string()
 	{
 		std::string result = "[";
@@ -119,7 +121,7 @@ namespace CXX {
 			Object& item = items[i];
 
 			// 要防止列表中包含自己导致的无限循环
-			if (Classifier::belongClass(item, Classifier::ClassType::LIST))
+			if (Classifier::belongClass(item, "List"))
 			{
 				auto list = item.getInstance()->get("@items");
 				if (list.getContainer().get() == this)
@@ -138,8 +140,9 @@ namespace CXX {
 		return result;
 	}
 
-	void MetaList::assertBound(int index)
+	void MetaList::assertBound(int& index)
 	{
+		// 如果是负下标，assertBound会将其改为正值
 		if (index < 0)
 			index = items.size() + index;
 
@@ -159,7 +162,7 @@ namespace CXX {
 			const Object& item = lhs.items[i];
 
 			// 要防止列表中包含自己导致的无限循环
-			if (Classifier::belongClass(item, Classifier::ClassType::LIST))
+			if (Classifier::belongClass(item, "List"))
 			{
 				auto list = item.getInstance()->get("@items");
 				if (list.getContainer().get() == &lhs)

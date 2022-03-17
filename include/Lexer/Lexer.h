@@ -18,6 +18,8 @@ namespace CXX {
 
 		static std::unordered_map<std::string, TokenType> reservedKeywords;
 
+		void reset();
+
 	private:
 		std::string_view text;
 		std::string_view filename;

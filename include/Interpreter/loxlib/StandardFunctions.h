@@ -66,6 +66,24 @@ namespace CXX {
 		public:
 			Str();
 		};
+		
+		class GetC :public NativeFunction
+		{
+		public:
+			GetC();
+		};
+
+		class Chr :public NativeFunction
+		{
+		public:
+			Chr();
+		};
+
+		class Exit: public NativeFunction
+		{
+		public:
+			Exit();
+		};
 
 		class TypeOf : public NativeFunction
 		{
@@ -77,6 +95,12 @@ namespace CXX {
 		{
 		public:
 			Print();
+		};
+
+		class GetAttr :public NativeFunction
+		{
+		public:
+			GetAttr();
 		};
 
 		class Loadlib :public NativeFunction

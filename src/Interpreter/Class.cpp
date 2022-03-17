@@ -4,18 +4,16 @@
 #include "Common/utils.h"
 #include "Runner.h"
 
-namespace CXX {
+namespace CXX
+{
 
 	Class::Class(std::string name, std::unordered_map<std::string, CallablePtr> methods,
-		std::optional<std::shared_ptr<Class>> superclass, bool isNative) : Callable(CallableType::CLASS),
-		className(std::move(name)),
-		methods(std::move(methods)),
-		superClass(std::move(superclass)),
-		isNative(isNative)
-	{
-	}
+		std::optional<std::shared_ptr<Class>> superclass, bool isNative) :
+		Callable(CallableType::CLASS), className(std::move(name)),
+		methods(std::move(methods)), superClass(std::move(superclass)),
+		isNative(isNative) {}
 
-	Object Class::call(Interpreter& interpreter, const std::vector<Object>& arguments)
+	Object Class::call(Interpreter &interpreter, const std::vector<Object> &arguments)
 	{
 		InstancePtr instance = std::make_shared<Instance>(shared_from_this());
 		if (auto initializer = findMethods("init"))
@@ -56,7 +54,7 @@ namespace CXX {
 		return className;
 	}
 
-	CallablePtr Class::findMethods(const std::string& name)
+	CallablePtr Class::findMethods(const std::string &name)
 	{
 		// reservedMethods是每个类专有的，不要去父类中寻找
 		bool look_in_this = false;
@@ -82,15 +80,17 @@ namespace CXX {
 	}
 
 	Instance::Instance(std::shared_ptr<Class> ClassPtr) : belonging(std::move(ClassPtr))
-	{}
+	{
+	}
 
 	Instance::~Instance()
 	{
-		Class* ptr = belonging.get();
+		Class *ptr = belonging.get();
 		// 不能在析构函数中调用shared_from_this
 		// 但是调用函数需要绑定实例，所以我们手动shared
 		// 注意自定义析构函数，不要delete this
-		InstancePtr instance(this, [](Instance* ptr) { ptr = nullptr; });
+		InstancePtr instance(this, [](Instance *ptr)
+							 { ptr = nullptr; });
 
 		// 由子类到父类依次析构
 		do
@@ -100,10 +100,12 @@ namespace CXX {
 				destructor->bindThis(instance)->call(Runner::interpreter, {});
 			}
 
-			if (ptr->superClass) {
+			if (ptr->superClass)
+			{
 				ptr = ptr->superClass.value().get();
 			}
-			else {
+			else
+			{
 				ptr = nullptr;
 			}
 
@@ -113,9 +115,9 @@ namespace CXX {
 		fields.clear();
 	}
 
-	Object Instance::get(const Token& identifier)
+	Object Instance::get(const Token &identifier)
 	{
-		const std::string& key = identifier.lexeme;
+		const std::string &key = identifier.lexeme;
 
 		auto it = fields.find(key);
 		if (it != fields.end())
@@ -130,7 +132,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Instance::get(const std::string& key)
+	Object Instance::get(const std::string &key)
 	{
 		auto it = fields.find(key);
 		if (it != fields.end())
@@ -145,11 +147,11 @@ namespace CXX {
 		return Object();
 	}
 
-	void Instance::set(const Token& identifier, const Object& val)
+	void Instance::set(const Token &identifier, const Object &val)
 	{
 		if (belonging->isNative)
 		{
-			auto ptr = std::dynamic_pointer_cast<NativeClass>(belonging);
+			auto ptr = std::static_pointer_cast<NativeClass>(belonging);
 
 			// 内部类只允许设定固定的几个字段(因为自定义的没意义)，并且有类型要求
 			// 我们也不会报错，只是不会真的设定
@@ -162,11 +164,11 @@ namespace CXX {
 		fields[identifier.lexeme] = val;
 	}
 
-	void Instance::set(const std::string& identifier, const Object& val)
+	void Instance::set(const std::string &identifier, const Object &val)
 	{
 		if (belonging->isNative)
 		{
-			auto ptr = std::dynamic_pointer_cast<NativeClass>(belonging);
+			auto ptr = std::static_pointer_cast<NativeClass>(belonging);
 
 			// 内部类只允许设定固定的几个字段(因为自定义的没意义)，并且有类型要求
 			// 我们也不会报错，只是不会真的设定
@@ -194,7 +196,7 @@ namespace CXX {
 		if (!fields.empty())
 		{
 			result += "\n{\n";
-			for (auto& [name, prop] : fields)
+			for (auto &[name, prop] : fields)
 			{
 				result += format("  %s: %s\n", name.c_str(), prop.to_string().c_str());
 			}

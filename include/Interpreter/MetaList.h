@@ -30,6 +30,7 @@ namespace CXX {
         Object lastIndexOf(const Object& val, int fromIndex = 0);
         Object reduce(std::shared_ptr<Callable> func);
         Object map(std::shared_ptr<Callable> func);
+        Object slice(int fromIndex, int endIndex);
 
         // properties
         size_t length();
@@ -39,7 +40,7 @@ namespace CXX {
         std::vector<Object> items;
 
     private:
-        void assertBound(int index);
+        void assertBound(int& index);
     };
 
     using MetaListPtr = std::shared_ptr<MetaList>;

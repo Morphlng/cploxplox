@@ -75,11 +75,7 @@ namespace CXX {
 
 		explicit Object(ContainerPtr list);
 
-		static Object& Nil()
-		{
-			static Object nil;
-			return nil;
-		}
+		static Object& Nil();
 
 		[[nodiscard]] bool isNumber() const;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <stdexcept>
 #include "Common/Position.h"
 
@@ -28,7 +27,7 @@ namespace CXX {
 	class ErrorReporter
 	{
 	public:
-		static void report(const Error& error);
+		static void report(const std::exception& error);
 		static void reset();
 		static int count();
 

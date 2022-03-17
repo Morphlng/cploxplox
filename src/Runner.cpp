@@ -14,19 +14,27 @@ namespace CXX {
 	Position* Runner::pos_start = nullptr;
 	Position* Runner::pos_end = nullptr;
 
+#ifdef USE_STRING_VIEW
+	static std::vector<std::string> TEXT;
+#endif
+
 	int Runner::runScript(const std::string& filename)
 	{
-		interpreter.replEcho = false;
 		std::optional<std::string> content = readfile(filename);
-		if (content)
+		if (content) {
+#ifdef USE_STRING_VIEW
+			TEXT.push_back(std::move(content.value()));
+			return runCode(filename, TEXT.back());
+#else
 			return runCode(filename, *content);
+#endif
+		}
 
 		return -1;
 	}
 
 	int Runner::runRepl()
 	{
-		interpreter.replEcho = true;
 		std::string input, text;
 		while (true)
 		{
@@ -43,12 +51,24 @@ namespace CXX {
 				text += "\n" + input;
 			}
 
-			runCode("<stdio>", text);
+#ifdef USE_STRING_VIEW
+			if (text.length() > 15) {
+				TEXT.push_back(std::move(text));
+				runCode("<stdio>", TEXT.back(), true);
+			}
+			else {
+				runCode("<stdio>", text, true);
+			}
+#else
+			runCode("<stdio>", text, true);
+#endif
 		}
 	}
 
-	int Runner::runCode(const std::string& filename, const std::string& text)
+	int Runner::runCode(const std::string& filename, const std::string& text, bool repl)
 	{
+		interpreter.replEcho = repl ? true : false;
+
 		Lexer lexer(filename, text);
 		std::vector<Token> tokens;
 		try
@@ -61,14 +81,15 @@ namespace CXX {
 					std::cout << tok.to_string() << "\n";
 				}
 			}
+			lexer.reset();
 		}
-		catch (const Error& e)
+		catch (const std::exception& e)
 		{
 			ErrorReporter::report(e);
 			return -ErrorReporter::count();
 		}
 
-		Parser parser(tokens);
+		Parser parser(std::move(tokens));
 		std::vector<StmtPtr> ast = parser.parse();
 		if (int errCnt = ErrorReporter::count())
 		{
@@ -81,6 +102,7 @@ namespace CXX {
 				std::cout << node->to_string() << "\n";
 			}
 		}
+		parser.reset();
 
 		Resolver resolver;
 		resolver.resolve(ast);
@@ -91,9 +113,9 @@ namespace CXX {
 
 		try
 		{
-			interpreter.interpret(ast);
+			interpreter.interpret(std::move(ast));
 		}
-		catch (const Error& e)
+		catch (const std::exception& e)
 		{
 			ErrorReporter::report(e);
 			return -ErrorReporter::count();

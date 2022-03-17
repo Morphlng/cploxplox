@@ -16,7 +16,7 @@ namespace CXX {
 		methods.insert(
 			{ "init", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													{
-														Object& instance = interpreter.context->getAt("this", 0);
+														Object& instance = interpreter.context->get("this");
 														instance.getInstance()->set("str", Object(args[0].to_string()));
 
 														return Object();
@@ -26,7 +26,7 @@ namespace CXX {
 		methods.insert(
 			{ "length", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													  {
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为字符串，所以这里一定拿到一个string
 														  Object str = instance.getInstance()->get("str");
 
@@ -37,7 +37,7 @@ namespace CXX {
 		methods.insert(
 			{ "trim", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													{
-														Object& instance = interpreter.context->getAt("this", 0);
+														Object& instance = interpreter.context->get("this");
 														// 因为初始化时已经转为字符串，所以这里一定拿到一个string
 														Object str = instance.getInstance()->get("str");
 
@@ -55,7 +55,7 @@ namespace CXX {
 															 throw RuntimeError(Runner::pos_start, Runner::pos_end, "Expecting a string delim to split string");
 														 }
 
-														 Object& instance = interpreter.context->getAt("this", 0);
+														 Object& instance = interpreter.context->get("this");
 														 // 因为初始化时已经转为字符串，所以这里一定拿到一个string
 														 Object str = instance.getInstance()->get("str");
 
@@ -74,7 +74,7 @@ namespace CXX {
 		methods.insert(
 			{ "__add__", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													   {
-														   Object& instance = interpreter.context->getAt("this", 0);
+														   Object& instance = interpreter.context->get("this");
 														   InstancePtr instancePtr = instance.getInstance();
 														   Object lhs = instancePtr->get("str");
 														   auto& rhs = args[0];
@@ -103,7 +103,7 @@ namespace CXX {
 		methods.insert(
 			{ "__mul__", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													   {
-														   Object& instance = interpreter.context->getAt("this", 0);
+														   Object& instance = interpreter.context->get("this");
 														   InstancePtr instancePtr = instance.getInstance();
 														   Object lhs = instancePtr->get("str");
 														   auto& rhs = args[0];
@@ -129,7 +129,7 @@ namespace CXX {
 			{ "__equal__",
 			 std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 											{
-												Object& instance = interpreter.context->getAt("this", 0);
+												Object& instance = interpreter.context->get("this");
 												Object lhs = instance.getInstance()->get("str");
 
 												// == 要求同类进行比较，因此rhs一定是instance
@@ -142,9 +142,15 @@ namespace CXX {
 											1) });
 	}
 
+	std::shared_ptr<String> String::getSingleton()
+	{
+		static std::shared_ptr<String> singleton = std::make_shared<String>();
+		return singleton;
+	}
+
 	InstancePtr String::instantiate(const std::string& str)
 	{
-		InstancePtr instance = std::make_shared<Instance>(shared_from_this());
+		InstancePtr instance = std::make_shared<Instance>(String::getSingleton());
 		instance->set("str", Object(str));
 
 		return instance;
@@ -153,7 +159,7 @@ namespace CXX {
 	InstancePtr String::instantiate(const Object& obj)
 	{
 		// 应当要求obj.isString();
-		InstancePtr instance = std::make_shared<Instance>(shared_from_this());
+		InstancePtr instance = std::make_shared<Instance>(String::getSingleton());
 		instance->set("str", obj);
 
 		return instance;
@@ -167,7 +173,7 @@ namespace CXX {
 		methods.insert(
 			{ "init", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													{
-														Object& instanceObject = interpreter.context->getAt("this", 0);
+														Object& instanceObject = interpreter.context->get("this");
 														InstancePtr instancePtr = instanceObject.getInstance();
 														if (args.size() == 1 && isMetaList(args[0]))
 														{
@@ -191,7 +197,7 @@ namespace CXX {
 		methods.insert(
 			{ "length", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													  {
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														  MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 
@@ -202,7 +208,7 @@ namespace CXX {
 		methods.insert(
 			{ "reverse", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													   {
-														   Object& instance = interpreter.context->getAt("this", 0);
+														   Object& instance = interpreter.context->get("this");
 														   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 														   list->reverse();
@@ -214,7 +220,7 @@ namespace CXX {
 		methods.insert(
 			{ "append", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													  {
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														  MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 														  list->append(args[0]);
@@ -226,7 +232,7 @@ namespace CXX {
 		methods.insert(
 			{ "remove", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													  {
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														  MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 														  list->remove(args[0]);
@@ -237,7 +243,7 @@ namespace CXX {
 		methods.insert(
 			{ "pop", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													  {
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														  MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 														  return list->pop();
@@ -247,7 +253,7 @@ namespace CXX {
 		methods.insert(
 			{ "unshift", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													   {
-														   Object& instance = interpreter.context->getAt("this", 0);
+														   Object& instance = interpreter.context->get("this");
 														   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 														   list->unshift(args[0]);
@@ -259,7 +265,7 @@ namespace CXX {
 		methods.insert(
 			{ "indexOf", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 													   {
-														   Object& instance = interpreter.context->getAt("this", 0);
+														   Object& instance = interpreter.context->get("this");
 														   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 
@@ -280,7 +286,7 @@ namespace CXX {
 		methods.insert(
 			{ "lastIndexOf", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 														   {
-															   Object& instance = interpreter.context->getAt("this", 0);
+															   Object& instance = interpreter.context->get("this");
 															   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 															   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 
@@ -311,7 +317,7 @@ namespace CXX {
 															  throw RuntimeError(Runner::pos_start, Runner::pos_end, "Expecting a function with two parameters to reduce");
 														  }
 
-														  Object& instance = interpreter.context->getAt("this", 0);
+														  Object& instance = interpreter.context->get("this");
 														  // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 														  MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 
@@ -333,7 +339,7 @@ namespace CXX {
 														   throw RuntimeError(Runner::pos_start, Runner::pos_end, "Expecting a function with one parameters to map");
 													   }
 
-													   Object& instance = interpreter.context->getAt("this", 0);
+													   Object& instance = interpreter.context->get("this");
 													   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 													   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
 
@@ -341,15 +347,31 @@ namespace CXX {
 												   },
 												   1) });
 
+		methods.insert(
+			{ "slice", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
+												   {
+													   if (!args[0].isNumber() || !args[1].isNumber())
+													   {
+														   throw RuntimeError(Runner::pos_start, Runner::pos_end, "range should be represented using Nubmer");
+													   }
+
+													   Object& instance = interpreter.context->get("this");
+													   // 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
+													   MetaListPtr list = getMetaList(instance.getInstance()->get("@items"));
+
+													   return list->slice(args[0].getNumber(),args[1].getNumber());
+												   },
+												   2) });
+
 		// reservedMethods
 		methods.insert(
 			{ "__equal__",
 			 std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 											{
-												if (!Classifier::belongClass(args[0], Classifier::ClassType::LIST))
+												if (!Classifier::belongClass(args[0], "List"))
 													return Object(false);
 
-												Object& instance = interpreter.context->getAt("this", 0);
+												Object& instance = interpreter.context->get("this");
 												// get two MetaListPtr
 												MetaListPtr lhs = getMetaList(instance.getInstance()->get("@items"));
 												MetaListPtr rhs = getMetaList(args[0].getInstance()->get("@items"));
@@ -365,7 +387,7 @@ namespace CXX {
 		methods.insert(
 			{ "__repr__", std::make_shared<NativeMethod>([&](Interpreter& interpreter, const std::vector<Object>& args)
 														{
-															Object& instance = interpreter.context->getAt("this", 0);
+															Object& instance = interpreter.context->get("this");
 															// 因为初始化时已经转为列表，所以这里一定拿到一个MetaList
 															Object list = instance.getInstance()->get("@items");
 
@@ -374,10 +396,15 @@ namespace CXX {
 														0) });
 	}
 
+	std::shared_ptr<List> List::getSingleton()
+	{
+		static std::shared_ptr<List> singleton = std::make_shared<List>();
+		return singleton;
+	}
+
 	InstancePtr List::instantiate(std::vector<Object> items)
 	{
-		std::shared_ptr<Class> ListClass = std::dynamic_pointer_cast<Class>(Runner::interpreter.globalContext->get("List").getCallable());
-		InstancePtr instance = std::make_shared<Instance>(ListClass);
+		InstancePtr instance = std::make_shared<Instance>(List::getSingleton());
 
 		instance->set("@items", Object(std::make_shared<MetaList>(std::move(items))));
 
@@ -621,32 +648,22 @@ namespace CXX {
 		Math->fields["LOG2E"] = Object(1.4426950408889634);	 // 以2为底，e的对数
 		Math->fields["LOG10E"] = Object(0.4342944819032518); // 以10为底，e的对数
 
-		return std::move(Math);
+		return Math;
 	}
 
-	Classifier::ClassType Classifier::classify(const Object& val)
+	std::string Classifier::className(const Object& val)
 	{
 		if (val.isInstance())
 		{
-			auto ptr = val.getInstance();
-			if (!ptr->belonging->isNative)
-				return ClassType::CUSTOM;
-
-			std::string& name = ptr->belonging->className;
-			if (name == "String")
-				return ClassType::STRING;
-			else if (name == "List")
-				return ClassType::LIST;
-			else if (name == "Mathematics")
-				return ClassType::MATHEMATICS;
+			return val.getInstance()->belonging->className;
 		}
 
-		return ClassType::NONE;
+		return std::string();
 	}
 
-	bool Classifier::belongClass(const Object& val, ClassType expect)
+	bool Classifier::belongClass(const Object& obj, const char* expect)
 	{
-		return classify(val) == expect;
+		return className(obj) == expect;
 	}
 
 }

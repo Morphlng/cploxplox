@@ -4,10 +4,9 @@
 
 namespace CXX {
 
-	Lexer::Lexer(const std::string& filename, const std::string& text) : text(text), filename(filename)
+	Lexer::Lexer(const std::string& filename, const std::string& text) :
+		text(text), filename(filename), pos(-1, 0, -1, filename, text), current_char('\0')
 	{
-		this->pos = Position(-1, 0, -1, filename, text);
-		this->current_char = '\0';
 		advance();
 	}
 
@@ -142,6 +141,11 @@ namespace CXX {
 		tokens.emplace_back(TokenType::END_OF_FILE, "", pos);
 
 		return tokens;
+	}
+
+	void Lexer::reset()
+	{
+		tokens.clear();
 	}
 
 	void Lexer::skip_comment()

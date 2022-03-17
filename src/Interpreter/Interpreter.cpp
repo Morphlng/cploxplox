@@ -31,6 +31,15 @@ namespace CXX
 		}
 	}
 
+	void Interpreter::interpret(std::vector<StmtPtr>&& statements)
+	{
+		for (auto& stmt : statements)
+		{
+			execute(stmt.get());
+			stmt.reset();
+		}
+	}
+
 	void Interpreter::visit(const ExpressionStmt *expressionStmt)
 	{
 		Object result = interpret(expressionStmt->expr.get());
@@ -62,16 +71,6 @@ namespace CXX
 
 	void Interpreter::visit(const ClassDeclarationStmt *classDeclStmt)
 	{
-		// 内部类不允许覆盖
-		Object &prev = context->get(classDeclStmt->name);
-		if (prev.isCallable() && prev.getCallable()->type == Callable::CallableType::CLASS)
-		{
-			std::shared_ptr<Class> ptr = std::dynamic_pointer_cast<Class>(prev.getCallable());
-			if (ptr->isNative)
-				throw RuntimeError(classDeclStmt->name.pos_start, classDeclStmt->name.pos_end,
-								   "Not allowed to redefine NativeClass");
-		}
-
 		// 在定义类时，我们将分两步构造，先声明，再赋值
 		// 这样可以允许类内函数调用该类
 		context->set(classDeclStmt->name, Object::Nil());
@@ -86,7 +85,7 @@ namespace CXX
 								   "SuperClass must be a Class");
 			}
 
-			superClass = std::dynamic_pointer_cast<Class>(superclassObject.getCallable());
+			superClass = std::static_pointer_cast<Class>(superclassObject.getCallable());
 		}
 
 		std::unordered_map<std::string, CallablePtr> methods;
@@ -412,15 +411,16 @@ namespace CXX
 
 		Object result = prev + Object(1.0);
 
-		if (auto var = dynamic_cast<VariableExpr *>(incrementExpr->holder.get()))
+		if (incrementExpr->holder->exprType == ExprType::Variable)
 		{
+			auto var = static_cast<VariableExpr *>(incrementExpr->holder.get());
 			context->change(var->identifier, result);
 		}
 		else
 		{
-			auto retrieve = dynamic_cast<RetrieveExpr *>(incrementExpr->holder.get());
+			auto retrieve = static_cast<RetrieveExpr *>(incrementExpr->holder.get());
 			Object holder = interpret(retrieve->holder.get());
-			if (Classifier::belongClass(holder, Classifier::ClassType::LIST) && retrieve->type == RetrieveExpr::HolderType::LIST)
+			if (Classifier::belongClass(holder, "List") && retrieve->type == RetrieveExpr::HolderType::LIST)
 			{
 				Object index = interpret(retrieve->index.get());
 				if (!index.isNumber())
@@ -453,21 +453,21 @@ namespace CXX
 		}
 
 		Object result = prev - Object(1.0);
-		if (auto var = dynamic_cast<VariableExpr *>(decrementExpr->holder.get()))
+
+		if (decrementExpr->holder->exprType == ExprType::Variable)
 		{
+			auto var = static_cast<VariableExpr *>(decrementExpr->holder.get());
 			context->change(var->identifier, result);
 		}
 		else
 		{
-			auto retrieve = dynamic_cast<RetrieveExpr *>(decrementExpr->holder.get());
+			auto retrieve = static_cast<RetrieveExpr *>(decrementExpr->holder.get());
 			Object holder = interpret(retrieve->holder.get());
-			if (Classifier::belongClass(holder, Classifier::ClassType::LIST) && retrieve->type == RetrieveExpr::HolderType::LIST)
+			if (Classifier::belongClass(holder, "List") && retrieve->type == RetrieveExpr::HolderType::LIST)
 			{
 				Object index = interpret(retrieve->index.get());
 				if (!index.isNumber())
-				{
 					throw RuntimeError(retrieve->index->pos_start, retrieve->index->pos_end, "Index should be a number");
-				}
 
 				Object &oldVal = listAt(holder, index);
 				oldVal = result;
@@ -532,7 +532,7 @@ namespace CXX
 	Object Interpreter::visit(const RetrieveExpr *retrieveExpr)
 	{
 		Object holder = interpret(retrieveExpr->holder.get());
-		if (Classifier::belongClass(holder, Classifier::ClassType::LIST) && retrieveExpr->type == RetrieveExpr::HolderType::LIST)
+		if (Classifier::belongClass(holder, "List") && retrieveExpr->type == RetrieveExpr::HolderType::LIST)
 		{
 			Object index = interpret(retrieveExpr->index.get());
 			if (!index.isNumber())
@@ -569,7 +569,7 @@ namespace CXX
 			holder.getInstance()->set(setExpr->identifier, value);
 			return value;
 		}
-		else if (Classifier::belongClass(holder, Classifier::ClassType::LIST) && setExpr->type == RetrieveExpr::HolderType::LIST)
+		else if (Classifier::belongClass(holder, "List") && setExpr->type == RetrieveExpr::HolderType::LIST)
 		{
 			// 这里为了拿到引用而不是复制，所以重复了Retrieve中的代码
 			Object index = interpret(setExpr->index.get());
@@ -603,12 +603,12 @@ namespace CXX
 		std::shared_ptr<Class> superClass;
 		if (currentFunction->type == Callable::CallableType::FUNCTION)
 		{
-			Object &belonging = dynamic_cast<Function *>(currentFunction)->belonging;
-			superClass = std::dynamic_pointer_cast<Class>(belonging.getCallable())->superClass.value();
+			Object &belonging = static_cast<Function *>(currentFunction)->belonging;
+			superClass = std::static_pointer_cast<Class>(belonging.getCallable())->superClass.value();
 		}
 		else if (currentFunction->type == Callable::CallableType::CLASS)
 		{
-			superClass = dynamic_cast<Class *>(currentFunction)->superClass.value();
+			superClass = static_cast<Class *>(currentFunction)->superClass.value();
 		}
 
 		CallablePtr method = superClass->findMethods(superExpr->identifier.lexeme);
@@ -667,17 +667,23 @@ namespace CXX
 		// 内置函数
 		auto clock = std::make_shared<standardFunctions::Clock>();
 		auto str = std::make_shared<standardFunctions::Str>();
+		auto chr = std::make_shared<standardFunctions::Chr>();
+		auto getc = std::make_shared<standardFunctions::GetC>();
+		auto exit = std::make_shared<standardFunctions::Exit>();
 		auto typo = std::make_shared<standardFunctions::TypeOf>();
 		auto print = std::make_shared<standardFunctions::Print>();
+		auto getattr = std::make_shared<standardFunctions::GetAttr>();
 		auto loadlib = std::make_shared<standardFunctions::Loadlib>();
 
 		// 内置类
-		auto StringClass = std::make_shared<String>();
-		auto ListClass = std::make_shared<List>();
+		auto StringClass = String::getSingleton();
+		auto ListClass = List::getSingleton();
 
-		std::vector<Object> built_in_functions = {Object(std::move(clock)), Object(std::move(str)),
-												  Object(std::move(typo)), Object(std::move(print)), Object(std::move(loadlib)),
-												  Object(std::move(StringClass)), Object(std::move(ListClass))};
+		std::vector<Object> built_in_functions = { 
+			Object(std::move(clock)), Object(std::move(str)), Object(std::move(typo)),
+			Object(std::move(chr)), Object(std::move(getc)), Object(std::move(exit)),
+			Object(std::move(print)), Object(std::move(getattr)), Object(std::move(loadlib)),
+			Object(std::move(StringClass)), Object(std::move(ListClass)) };
 
 		for (auto const &func : built_in_functions)
 		{
@@ -766,10 +772,19 @@ namespace CXX
 			return nullptr;
 		}
 
+		// backup current context
+		ContextPtr context_bak = context, global_bak = globalContext;
+		// create new module global context
 		ContextPtr moduleEnv = std::make_shared<Context>(presetContext);
 		moduleEnv->set("__name__", Object(filepath.lexeme));
 
-		ScopedContext scope(context, moduleEnv, false);
+		globalContext = moduleEnv;
+		context = globalContext;
+
+		Finally task([&]() {
+			globalContext.swap(global_bak);
+			context.swap(context_bak);
+		});
 
 		interpret(blockStmt->statements);
 

@@ -4,12 +4,22 @@
 #include "Parser/Stmt.h"
 #include "Parser/Expr.h"
 
-namespace CXX {
+namespace CXX
+{
 
-	Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens)
+	Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), tok_idx(-1)
 	{
-		tok_idx = -1;
 		advance();
+	}
+
+	Parser::Parser(std::vector<Token>&& tokens) : tokens(std::move(tokens)), tok_idx(-1)
+	{
+		advance();
+	}
+
+	void Parser::reset()
+	{
+		tokens.clear();
 	}
 
 	std::vector<StmtPtr> Parser::parse()
@@ -57,7 +67,7 @@ namespace CXX {
 				return statement();
 			}
 		}
-		catch (const ParsingError& e)
+		catch (const ParsingError &e)
 		{
 			ErrorReporter::report(e);
 			synchronize();
@@ -92,7 +102,7 @@ namespace CXX {
 	{
 		Token name = previous();
 
-		std::shared_ptr<LambdaExpr> ptr = std::dynamic_pointer_cast<LambdaExpr>(func_body());
+		std::shared_ptr<LambdaExpr> ptr = std::static_pointer_cast<LambdaExpr>(func_body());
 
 		return std::make_shared<FuncDeclarationStmt>(name, std::move(ptr->params), std::move(ptr->default_values), std::move(ptr->body));
 	}
@@ -114,7 +124,7 @@ namespace CXX {
 		while (!check(TokenType::RBRACE) && !check(TokenType::END_OF_FILE))
 		{
 			expect(TokenType::IDENTIFIER, "Expect method name");
-			methods.push_back(std::dynamic_pointer_cast<FuncDeclarationStmt>(funcDeclStatement()));
+			methods.push_back(std::static_pointer_cast<FuncDeclarationStmt>(funcDeclStatement()));
 		}
 
 		expect(TokenType::RBRACE, "Expect '}' to close up class body");
@@ -231,7 +241,7 @@ namespace CXX {
 		StmtPtr body = statement();
 
 		return std::make_shared<ForStmt>(std::move(initializer), std::move(condition), std::move(increment),
-			std::move(body));
+										 std::move(body));
 	}
 
 	StmtPtr Parser::breakStatement()
@@ -285,7 +295,6 @@ namespace CXX {
 					alias = previous();
 				}
 
-				// TODO: 不应该允许命名冲突
 				symbols.emplace(symbol, alias);
 			} while (match(TokenType::COMMA));
 		}
@@ -333,7 +342,7 @@ namespace CXX {
 		ExprPtr expr = ternary();
 
 		if (match(TokenType::EQ, TokenType::PLUS_EQUAL, TokenType::MINUS_EQUAL, TokenType::MUL_EQUAL,
-			TokenType::DIV_EQUAL))
+				  TokenType::DIV_EQUAL))
 		{
 			Token op = previous();
 			ExprPtr rvalue = assignment(); // 这将允许 a = b = ... = 1;
@@ -407,22 +416,22 @@ namespace CXX {
 
 	ExprPtr Parser::equality()
 	{
-		return bin_op(&Parser::comparison, { TokenType::EQEQ, TokenType::BANGEQ }, &Parser::comparison);
+		return bin_op(&Parser::comparison, {TokenType::EQEQ, TokenType::BANGEQ}, &Parser::comparison);
 	}
 
 	ExprPtr Parser::comparison()
 	{
-		return bin_op(&Parser::term, { TokenType::GT, TokenType::GTE, TokenType::LT, TokenType::LTE }, &Parser::term);
+		return bin_op(&Parser::term, {TokenType::GT, TokenType::GTE, TokenType::LT, TokenType::LTE}, &Parser::term);
 	}
 
 	ExprPtr Parser::term()
 	{
-		return bin_op(&Parser::factor, { TokenType::PLUS, TokenType::MINUS }, &Parser::factor);
+		return bin_op(&Parser::factor, {TokenType::PLUS, TokenType::MINUS}, &Parser::factor);
 	}
 
 	ExprPtr Parser::factor()
 	{
-		return bin_op(&Parser::unary, { TokenType::MUL, TokenType::DIV, TokenType::MOD }, &Parser::unary);
+		return bin_op(&Parser::unary, {TokenType::MUL, TokenType::DIV, TokenType::MOD}, &Parser::unary);
 	}
 
 	ExprPtr Parser::unary()
@@ -564,8 +573,8 @@ namespace CXX {
 		return std::make_shared<ListExpr>(lbracket, std::move(args), rbracket);
 	}
 
-	ExprPtr Parser::bin_op(const std::function<ExprPtr(Parser*)>& funcA, std::initializer_list<TokenType> ops,
-		const std::function<ExprPtr(Parser*)>& funcB)
+	ExprPtr Parser::bin_op(const std::function<ExprPtr(Parser *)> &funcA, std::initializer_list<TokenType> ops,
+						   const std::function<ExprPtr(Parser *)> &funcB)
 	{
 		ExprPtr expr = funcA(this);
 		while (match(ops))
@@ -670,12 +679,12 @@ namespace CXX {
 		return tokens[tok_idx - 1];
 	}
 
-	bool Parser::check(const TokenType& type) const
+	bool Parser::check(const TokenType &type) const
 	{
 		return current_tok.type == type;
 	}
 
-	void Parser::expect(const TokenType& type, const std::string& error_message)
+	void Parser::expect(const TokenType &type, const std::string &error_message)
 	{
 		// 检查current_tok是否符合预期，若不符合则抛出对应错误信息
 		if (!check(type))
@@ -685,10 +694,10 @@ namespace CXX {
 		advance();
 	}
 
-	bool Parser::match(const std::initializer_list<TokenType>& types)
+	bool Parser::match(const std::initializer_list<TokenType> &types)
 	{
 		if (std::any_of(std::begin(types), std::end(types), [&](TokenType type)
-			{ return current_tok.type == type; }))
+						{ return current_tok.type == type; }))
 		{
 			advance();
 			return true;

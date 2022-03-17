@@ -9,9 +9,7 @@
 
 namespace CXX {
 
-	Object::Object() : type(ObjectType::NIL)
-	{
-	}
+	Object::Object() : type(ObjectType::NIL) {}
 
 	Object::Object(const Token& tok)
 	{
@@ -19,7 +17,10 @@ namespace CXX {
 		{
 		case TokenType::NUMBER:
 			type = ObjectType::NUMBER;
-			value = std::stod(tok.lexeme);
+			if (tok.lexeme.compare(0, 2, "0b") == 0)
+				value = (double)(std::stoi(tok.lexeme.substr(2), 0, 2));
+			else
+				value = std::stod(tok.lexeme);
 			break;
 
 		case TokenType::TRUE:
@@ -46,28 +47,22 @@ namespace CXX {
 		}
 	}
 
-	Object::Object(double number) : type(ObjectType::NUMBER), value(number)
-	{
-	}
+	Object::Object(double number) : type(ObjectType::NUMBER), value(number) {}
 
-	Object::Object(const std::string& str) : type(ObjectType::STRING), value(str)
-	{
-	}
+	Object::Object(const std::string& str) : type(ObjectType::STRING), value(str) {}
 
-	Object::Object(bool boolean) : type(ObjectType::BOOL), value(boolean)
-	{
-	}
+	Object::Object(bool boolean) : type(ObjectType::BOOL), value(boolean) {}
 
-	Object::Object(CallablePtr callable) : type(ObjectType::CALLABLE), value(std::move(callable))
-	{
-	}
+	Object::Object(CallablePtr callable) : type(ObjectType::CALLABLE), value(std::move(callable)) {}
 
-	Object::Object(InstancePtr instance) : type(ObjectType::INSTANCE), value(std::move(instance))
-	{
-	}
+	Object::Object(InstancePtr instance) : type(ObjectType::INSTANCE), value(std::move(instance)) {}
 
-	Object::Object(ContainerPtr list) : type(ObjectType::CONTAINER), value(std::move(list))
+	Object::Object(ContainerPtr list) : type(ObjectType::CONTAINER), value(std::move(list)) {}
+
+	Object& Object::Nil()
 	{
+		static Object nil;
+		return nil;
 	}
 
 	bool Object::isNumber() const
@@ -182,8 +177,12 @@ namespace CXX {
 		{
 			return getNumber() > 0;
 		}
+		else if (isNil())
+		{
+			return false;
+		}
 
-		return false;
+		return true;
 	}
 
 	const char* ObjectTypeName(ObjectType type)

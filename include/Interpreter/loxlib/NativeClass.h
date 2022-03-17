@@ -21,14 +21,18 @@ namespace CXX {
 	{
 	public:
 		String();
-		InstancePtr instantiate(const std::string& str);
-		InstancePtr instantiate(const Object& obj);
+		static std::shared_ptr<String> getSingleton();
+
+		static InstancePtr instantiate(const std::string& str);
+		static InstancePtr instantiate(const Object& obj);
 	};
 
 	class List : public NativeClass
 	{
 	public:
 		List();
+		static std::shared_ptr<List> getSingleton();
+
 		static InstancePtr instantiate(std::vector<Object> items);
 	};
 
@@ -42,20 +46,11 @@ namespace CXX {
 		static InstancePtr instantiate();
 	};
 
-	// 这个类专门用来分出一个Object属于的类
+	// 这个接口专门用来分出一个Object属于的类
 	struct Classifier
 	{
-		enum class ClassType
-		{
-			STRING,		 // 内置类String
-			LIST,		 // 内置类List
-			MATHEMATICS, // 内置类Mathematics
-			NONE,		 // 非类
-			CUSTOM		 // 用户自定类
-		};
-
-		static ClassType classify(const Object& val);
-		static bool belongClass(const Object& val, ClassType expect);
+		static std::string className(const Object& val);
+		static bool belongClass(const Object& obj, const char* expect);
 	};
 
 }

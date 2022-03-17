@@ -30,7 +30,7 @@ std::string strip(const std::string& str, char ch = ' ');
 
 std::vector<std::string> split(const std::string& str, const std::string& regex_str);
 
-// Use string.c_str()
+// Use string.c_str() or string_view.data()
 template <typename... Args>
 std::string format(const std::string& format, Args... args)
 {

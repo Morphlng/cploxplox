@@ -13,8 +13,11 @@ namespace CXX {
 	{
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
+		explicit Parser(std::vector<Token>&& tokens);
 
 		~Parser() = default;
+
+		void reset();
 
 		std::vector<StmtPtr> parse();
 

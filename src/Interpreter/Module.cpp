@@ -2,9 +2,7 @@
 
 namespace CXX {
 
-	Module::Module(std::unordered_map<std::string, Object> values) : m_values(std::move(values))
-	{
-	}
+	Module::Module(std::unordered_map<std::string, Object> values) : m_values(std::move(values)) {}
 
 	Module::~Module()
 	{

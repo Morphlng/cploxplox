@@ -1,15 +1,11 @@
 #include "Common/Position.h"
-#include <algorithm>
-#include <utility>
 
 namespace CXX {
 
-    Position::Position(int idx, int line, int col, std::string filename, std::string ftx) : index(idx), row(line),
-        column(col),
-        fileName(std::move(filename)),
-        fileContent(std::move(ftx))
-    {
-    }
+    Position::Position(int idx, int line, int col, const std::string& filename, const std::string& ftx) : 
+        index(idx), row(line), column(col),
+        fileName(filename),
+        fileContent(ftx) {}
 
     Position::Position(const Position& other)
     {

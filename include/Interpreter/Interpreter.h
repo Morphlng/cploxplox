@@ -16,6 +16,8 @@ namespace CXX {
 
 		void interpret(const std::vector<StmtPtr>& statements);
 
+		void interpret(std::vector<StmtPtr>&& statements);
+
 		Object interpret(Expr* expr);
 
 		void execute(Stmt* pStmt);

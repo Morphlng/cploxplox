@@ -64,12 +64,12 @@ namespace CXX {
 	void Error::generate_message(const std::string& error_name, const std::string& details)
 	{
 		message = format("%s: %s\n", error_name.c_str(), details.c_str());
-		message += format("File %s, line %s\n\n", this->pos_start.fileName.c_str(),
+		message += format("File %s, line %s\n\n", this->pos_start.fileName.data(),
 			std::to_string(this->pos_start.row + 1).c_str());
-		message += string_with_arrows(this->pos_start.fileContent, this->pos_start, this->pos_end);
+		message += string_with_arrows(this->pos_start.fileContent.data(), this->pos_start, this->pos_end);
 	}
 
-	void ErrorReporter::report(const Error& error)
+	void ErrorReporter::report(const std::exception& error)
 	{
 		std::cerr << error.what() << "\n";
 		errorCount++;

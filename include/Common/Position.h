@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <string>
 
 namespace CXX {
@@ -10,7 +11,7 @@ namespace CXX {
     {
 
     public:
-        Position(int idx = -1, int line = 0, int col = -1, std::string filename = "", std::string ftx = "");
+        Position(int idx = -1, int line = 0, int col = -1, const std::string& filename = "", const std::string& ftx = "");
 
         Position(const Position& other);
 
@@ -22,8 +23,13 @@ namespace CXX {
         int index;
         int row;
         int column;
+#ifdef USE_STRING_VIEW
+        std::string_view fileName;
+        std::string_view fileContent;
+#else
         std::string fileName;
         std::string fileContent;
+#endif
     };
 
 }

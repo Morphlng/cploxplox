@@ -3,11 +3,12 @@
 #include <filesystem>
 #include <cstdlib>
 
-namespace CXX {
+namespace CXX
+{
 
-	bool Resolver::resolve(const std::vector<StmtPtr>& stmts)
+	bool Resolver::resolve(const std::vector<StmtPtr> &stmts)
 	{
-		for (auto const& stmt : stmts)
+		for (auto const &stmt : stmts)
 		{
 			resolve(stmt.get());
 		}
@@ -15,31 +16,31 @@ namespace CXX {
 		return ErrorReporter::errorCount == 0;
 	}
 
-	Object Resolver::visit(const BinaryExpr* binaryExpr)
+	Object Resolver::visit(const BinaryExpr *binaryExpr)
 	{
 		resolve(binaryExpr->left.get());
 		resolve(binaryExpr->right.get());
 		return Object();
 	}
 
-	Object Resolver::visit(const UnaryExpr* unaryExpr)
+	Object Resolver::visit(const UnaryExpr *unaryExpr)
 	{
 		resolve(unaryExpr->expr.get());
 		return Object();
 	}
 
-	Object Resolver::visit(const LiteralExpr* literalExpr)
+	Object Resolver::visit(const LiteralExpr *literalExpr)
 	{
 		return Object();
 	}
 
-	Object Resolver::visit(const VariableExpr* variableExpr)
+	Object Resolver::visit(const VariableExpr *variableExpr)
 	{
-		const std::string& name = variableExpr->identifier.lexeme;
+		const std::string &name = variableExpr->identifier.lexeme;
 
 		if (!scopes.empty())
 		{
-			auto& nearest_scope = scopes.back();
+			auto &nearest_scope = scopes.back();
 
 			// 这里处理的情况是 var a = a;
 			if (nearest_scope.find(name) != nearest_scope.end() && !nearest_scope.find(name)->second)
@@ -49,18 +50,18 @@ namespace CXX {
 			}
 		}
 
-		const_cast<VariableExpr*>(variableExpr)->resolve(resolveLocal(variableExpr->identifier));
+		const_cast<VariableExpr *>(variableExpr)->resolve(resolveLocal(variableExpr->identifier));
 		return Object();
 	}
 
-	Object Resolver::visit(const AssignmentExpr* assignmentExpr)
+	Object Resolver::visit(const AssignmentExpr *assignmentExpr)
 	{
 		resolve(assignmentExpr->value.get());
-		const_cast<AssignmentExpr*>(assignmentExpr)->resolve(resolveLocal(assignmentExpr->identifier));
+		const_cast<AssignmentExpr *>(assignmentExpr)->resolve(resolveLocal(assignmentExpr->identifier));
 		return Object();
 	}
 
-	Object Resolver::visit(const TernaryExpr* ternaryExpr)
+	Object Resolver::visit(const TernaryExpr *ternaryExpr)
 	{
 		resolve(ternaryExpr->expr.get());
 		resolve(ternaryExpr->thenBranch.get());
@@ -69,7 +70,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const OrExpr* orExpr)
+	Object Resolver::visit(const OrExpr *orExpr)
 	{
 		resolve(orExpr->left.get());
 		resolve(orExpr->right.get());
@@ -77,7 +78,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const AndExpr* andExpr)
+	Object Resolver::visit(const AndExpr *andExpr)
 	{
 		resolve(andExpr->left.get());
 		resolve(andExpr->right.get());
@@ -85,10 +86,10 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const CallExpr* functionCallExpr)
+	Object Resolver::visit(const CallExpr *functionCallExpr)
 	{
 		resolve(functionCallExpr->callee.get());
-		for (auto const& arg : functionCallExpr->arguments)
+		for (auto const &arg : functionCallExpr->arguments)
 		{
 			resolve(arg.get());
 		}
@@ -96,7 +97,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const RetrieveExpr* retrieveExpr)
+	Object Resolver::visit(const RetrieveExpr *retrieveExpr)
 	{
 		// Resolver只做静态分析，Retrieve属于运行时操作，因此没有绑定操作
 		resolve(retrieveExpr->holder.get());
@@ -106,7 +107,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const SetExpr* setExpr)
+	Object Resolver::visit(const SetExpr *setExpr)
 	{
 		resolve(setExpr->holder.get());
 		if (setExpr->index)
@@ -116,10 +117,11 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const IncrementExpr* incrementExpr)
+	Object Resolver::visit(const IncrementExpr *incrementExpr)
 	{
-		if (auto var = dynamic_cast<VariableExpr*>(incrementExpr->holder.get()))
+		if (incrementExpr->holder->exprType == ExprType::Variable)
 		{
+			auto var = static_cast<VariableExpr *>(incrementExpr->holder.get());
 			var->resolve(resolveLocal(var->identifier));
 		}
 		else
@@ -131,10 +133,11 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const DecrementExpr* decrementExpr)
+	Object Resolver::visit(const DecrementExpr *decrementExpr)
 	{
-		if (auto var = dynamic_cast<VariableExpr*>(decrementExpr->holder.get()))
+		if (decrementExpr->holder->exprType == ExprType::Variable)
 		{
+			auto var = static_cast<VariableExpr *>(decrementExpr->holder.get());
 			var->resolve(resolveLocal(var->identifier));
 		}
 		else
@@ -152,7 +155,7 @@ namespace CXX {
 		return Object();
 	}
 
-	Object Resolver::visit(const ThisExpr* thisExpr)
+	Object Resolver::visit(const ThisExpr *thisExpr)
 	{
 		if (currentClass == ClassType::NONE)
 		{
@@ -160,12 +163,12 @@ namespace CXX {
 			return Object();
 		}
 
-		const_cast<ThisExpr*>(thisExpr)->resolve(resolveLocal(thisExpr->keyword));
+		const_cast<ThisExpr *>(thisExpr)->resolve(resolveLocal(thisExpr->keyword));
 
 		return Object();
 	}
 
-	Object Resolver::visit(const SuperExpr* superExpr)
+	Object Resolver::visit(const SuperExpr *superExpr)
 	{
 		if (currentClass != ClassType::SUBCLASS)
 		{
@@ -173,22 +176,22 @@ namespace CXX {
 			return Object();
 		}
 
-		const_cast<SuperExpr*>(superExpr)->resolve(resolveLocal(superExpr->keyword));
+		const_cast<SuperExpr *>(superExpr)->resolve(resolveLocal(superExpr->keyword));
 
 		return Object();
 	}
 
-	Object Resolver::visit(const ListExpr* listExpr)
+	Object Resolver::visit(const ListExpr *listExpr)
 	{
-		for (auto& item : listExpr->items)
+		for (auto &item : listExpr->items)
 			resolve(item.get());
 
 		return Object();
 	}
 
-	Object Resolver::visit(const PackExpr* packExpr)
+	Object Resolver::visit(const PackExpr *packExpr)
 	{
-		for (auto const& expr : packExpr->expressions)
+		for (auto const &expr : packExpr->expressions)
 		{
 			resolve(expr.get());
 		}
@@ -196,12 +199,12 @@ namespace CXX {
 		return Object();
 	}
 
-	void Resolver::visit(const ExpressionStmt* expressionStmt)
+	void Resolver::visit(const ExpressionStmt *expressionStmt)
 	{
 		resolve(expressionStmt->expr.get());
 	}
 
-	void Resolver::visit(const VarDeclarationStmt* varStmt)
+	void Resolver::visit(const VarDeclarationStmt *varStmt)
 	{
 		declare(varStmt->identifier);
 		if (varStmt->expr)
@@ -211,14 +214,14 @@ namespace CXX {
 		define(varStmt->identifier);
 	}
 
-	void Resolver::visit(const BlockStmt* blockStmt)
+	void Resolver::visit(const BlockStmt *blockStmt)
 	{
 		beginScope();
 		resolve(blockStmt->statements);
 		endScope();
 	}
 
-	void Resolver::visit(const IfStmt* ifStmt)
+	void Resolver::visit(const IfStmt *ifStmt)
 	{
 		resolve(ifStmt->condition.get());
 		resolve(ifStmt->thenBranch.get());
@@ -228,7 +231,7 @@ namespace CXX {
 		}
 	}
 
-	void Resolver::visit(const WhileStmt* whileStmt)
+	void Resolver::visit(const WhileStmt *whileStmt)
 	{
 		loopLayer++;
 
@@ -238,7 +241,7 @@ namespace CXX {
 		loopLayer--;
 	}
 
-	void Resolver::visit(const ForStmt* forStmt)
+	void Resolver::visit(const ForStmt *forStmt)
 	{
 		loopLayer++;
 
@@ -258,7 +261,7 @@ namespace CXX {
 		loopLayer--;
 	}
 
-	void Resolver::visit(const BreakStmt* breakStmt)
+	void Resolver::visit(const BreakStmt *breakStmt)
 	{
 		if (loopLayer == 0)
 		{
@@ -266,7 +269,7 @@ namespace CXX {
 		}
 	}
 
-	void Resolver::visit(const ContinueStmt* continueStmt)
+	void Resolver::visit(const ContinueStmt *continueStmt)
 	{
 		if (loopLayer == 0)
 		{
@@ -281,7 +284,7 @@ namespace CXX {
 		resolveFunction(funcDeclStmt.get(), FunctionType::FUNCTION);
 	}
 
-	void Resolver::visit(const ReturnStmt* returnStmt)
+	void Resolver::visit(const ReturnStmt *returnStmt)
 	{
 		if (currentFunction == FunctionType::NONE)
 		{
@@ -293,68 +296,76 @@ namespace CXX {
 			if (currentFunction == FunctionType::INITIALIZER)
 			{
 				return ErrorReporter::report(ResolvingError(returnStmt->pos_start, returnStmt->pos_end,
-					"Can't 'return' non-nil value from an initializer"));
+															"Can't 'return' non-nil value from an initializer"));
 			}
 
 			resolve(returnStmt->expr.value().get());
 		}
 	}
 
-	void Resolver::visit(const ImportStmt* importStmt)
+	void Resolver::visit(const ImportStmt *importStmt)
 	{
 		namespace fs = std::filesystem;
 		auto filepath = fs::path(importStmt->filepath.lexeme);
 		bool existed = false;
 
-		if (!filepath.has_extension()) {
+		if (!filepath.has_extension())
+		{
 			filepath.concat(".lox");
 		}
 
-		if (!filepath.is_absolute()) {
-			const char* loxenv = std::getenv("LOXLIB");
-			if (!loxenv) {
+		if (!filepath.is_absolute())
+		{
+			const char *loxenv = std::getenv("LOXLIB");
+			if (!loxenv)
+			{
 				filepath = fs::absolute(filepath);
 				existed = fs::exists(filepath);
 			}
-			else {
+			else
+			{
 				auto folders = split(loxenv, ";");
-				for (auto& folder : folders) {
+				for (auto &folder : folders)
+				{
 					auto tmpPath = fs::path(folder) / filepath;
 
-					if (existed = fs::exists(tmpPath)) {
+					if (existed = fs::exists(tmpPath))
+					{
 						filepath = tmpPath;
 						break;
 					}
 				}
 			}
 		}
-		else {
+		else
+		{
 			existed = fs::exists(filepath);
 		}
 
-		if (!existed) {
+		if (!existed)
+		{
 			return ErrorReporter::report(ResolvingError(importStmt->filepath.pos_start, importStmt->filepath.pos_end,
-				"Invalid import path"));
+														"Invalid import path"));
 		}
 
-		const_cast<ImportStmt*>(importStmt)->filepath.lexeme = filepath.string();
+		const_cast<ImportStmt *>(importStmt)->filepath.lexeme = filepath.string();
 
-		for (auto& [name, _] : importStmt->symbols)
+		for (auto &[name, _] : importStmt->symbols)
 		{
 			declare(name);
 			define(name);
 		}
 	}
 
-	void Resolver::visit(const PackStmt* packStmt)
+	void Resolver::visit(const PackStmt *packStmt)
 	{
-		for (auto const& stmt : packStmt->statements)
+		for (auto const &stmt : packStmt->statements)
 		{
 			resolve(stmt.get());
 		}
 	}
 
-	void Resolver::visit(const ClassDeclarationStmt* classDeclStmt)
+	void Resolver::visit(const ClassDeclarationStmt *classDeclStmt)
 	{
 		ClassType enclosing = currentClass;
 		currentClass = ClassType::CLASS;
@@ -362,7 +373,8 @@ namespace CXX {
 		declare(classDeclStmt->name);
 		define(classDeclStmt->name);
 
-		if (classDeclStmt->superClass)
+		bool defineSuper{false};
+		if (defineSuper = classDeclStmt->superClass.has_value())
 		{
 			currentClass = ClassType::SUBCLASS;
 			auto ptr = classDeclStmt->superClass.value().get();
@@ -371,20 +383,25 @@ namespace CXX {
 				return ErrorReporter::report(ResolvingError(classDeclStmt->pos_start, ptr->pos_end, "A Class can't derived from itself"));
 			}
 			resolve(ptr);
-			scopes.back()["super"] = true;
 		}
 
 		beginScope();
-		scopes.back()["this"] = true;
-		// 利用析构函数保证endScope运行
-		Finally task{ [&]() {endScope(); currentClass = enclosing; } };
+		scopes.back().emplace("this", true);
+		if (defineSuper)
+			scopes.back().emplace("super", true);
 
-		for (auto& method : classDeclStmt->methods)
+		// 利用析构函数保证endScope运行
+		Finally task{[&]()
+					 {endScope(); currentClass = enclosing; }};
+
+		for (auto &method : classDeclStmt->methods)
 		{
 			if (method->name.lexeme == "init")
 				resolveFunction(method.get(), FunctionType::INITIALIZER);
-			else if (method->name.lexeme == "__del__") {
-				if (method->params.size() != 0) {
+			else if (method->name.lexeme == "__del__")
+			{
+				if (method->params.size() != 0)
+				{
 					return ErrorReporter::report(ResolvingError(method->params.front().pos_start, method->params.back().pos_end, "Destructor shouldn't take arguments"));
 				}
 
@@ -395,13 +412,13 @@ namespace CXX {
 		}
 	}
 
-	void Resolver::resolveFunction(const FuncDeclarationStmt* functionStmt, FunctionType type)
+	void Resolver::resolveFunction(const FuncDeclarationStmt *functionStmt, FunctionType type)
 	{
 		FunctionType enclosing = currentFunction;
 		currentFunction = type;
 
 		beginScope();
-		for (auto& param : functionStmt->params)
+		for (auto &param : functionStmt->params)
 		{
 			declare(param);
 			define(param);
@@ -411,13 +428,13 @@ namespace CXX {
 		currentFunction = enclosing;
 	}
 
-	void Resolver::resolveFunction(const LambdaExpr* lambdaExpr)
+	void Resolver::resolveFunction(const LambdaExpr *lambdaExpr)
 	{
 		FunctionType enclosing = currentFunction;
 		currentFunction = FunctionType::FUNCTION;
 
 		beginScope();
-		for (auto& param : lambdaExpr->params)
+		for (auto &param : lambdaExpr->params)
 		{
 			declare(param);
 			define(param);
@@ -427,17 +444,17 @@ namespace CXX {
 		currentFunction = enclosing;
 	}
 
-	void Resolver::resolve(Stmt* stmt)
+	void Resolver::resolve(Stmt *stmt)
 	{
 		stmt->accept(*this);
 	}
 
-	void Resolver::resolve(Expr* expr)
+	void Resolver::resolve(Expr *expr)
 	{
 		expr->accept(*this);
 	}
 
-	int Resolver::resolveLocal(const Token& name)
+	int Resolver::resolveLocal(const Token &name)
 	{
 		int totalLength = scopes.size();
 		for (int dist = totalLength - 1; dist >= 0; dist--)
@@ -464,7 +481,7 @@ namespace CXX {
 		scopes.pop_back();
 	}
 
-	void Resolver::define(const Token& name)
+	void Resolver::define(const Token &name)
 	{
 		if (scopes.empty())
 			return;
@@ -472,7 +489,7 @@ namespace CXX {
 		scopes.back()[name.lexeme] = true;
 	}
 
-	void Resolver::declare(const Token& name)
+	void Resolver::declare(const Token &name)
 	{
 		if (scopes.empty())
 			return;

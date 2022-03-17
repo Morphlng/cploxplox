@@ -3,9 +3,7 @@
 
 namespace CXX {
 
-	Context::Context(ContextPtr parent) : parent(std::move(parent))
-	{
-	}
+	Context::Context(ContextPtr parent) : parent(std::move(parent)) {}
 
 	Context::~Context()
 	{

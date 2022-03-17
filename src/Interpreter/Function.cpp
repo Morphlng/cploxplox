@@ -12,9 +12,7 @@ namespace CXX {
 	}
 
 	Function::Function(Object& belonging, std::shared_ptr<FuncDeclarationStmt> body, const std::vector<Object>& default_values, ContextPtr env)
-		: belonging(belonging), funcBody(std::move(body)), default_values(default_values), closure(std::move(env))
-	{
-	}
+		: belonging(belonging), funcBody(std::move(body)), default_values(default_values), closure(std::move(env)) {}
 
 	Object Function::call(Interpreter& interpreter, const std::vector<Object>& arguments)
 	{

@@ -23,7 +23,7 @@ namespace CXX {
 		static Position* pos_end;
 
 	private:
-		static int runCode(const std::string& filename, const std::string& text);
+		static int runCode(const std::string& filename, const std::string& text, bool repl = false);
 	};
 
 }
