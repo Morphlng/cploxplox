@@ -8,10 +8,9 @@ namespace CXX
 {
 
 	Class::Class(std::string name, std::unordered_map<std::string, CallablePtr> methods,
-		std::optional<std::shared_ptr<Class>> superclass, bool isNative) :
-		Callable(CallableType::CLASS), className(std::move(name)),
-		methods(std::move(methods)), superClass(std::move(superclass)),
-		isNative(isNative) {}
+				 std::optional<std::shared_ptr<Class>> superclass, bool isNative) : Callable(CallableType::CLASS), className(std::move(name)),
+																					methods(std::move(methods)), superClass(std::move(superclass)),
+																					isNative(isNative) {}
 
 	Object Class::call(Interpreter &interpreter, const std::vector<Object> &arguments)
 	{
@@ -186,6 +185,8 @@ namespace CXX
 		// 如果有重载的表示方法，则调用
 		if (auto printer = get("__repr__"); !printer.isNil())
 		{
+			auto task = Runner::interpreter.toggleRepl();
+
 			Object result = printer.getCallable()->call(Runner::interpreter, {});
 			return result.getString();
 		}

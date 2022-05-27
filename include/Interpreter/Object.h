@@ -33,27 +33,29 @@ namespace CXX {
 	class Object
 	{
 	public:
-		friend Object operator+(const Object& lhs, const Object& rhs);
+		bool isSameType(const Object& rhs, ObjectType expected) const;
 
-		friend Object operator-(const Object& lhs, const Object& rhs);
+		Object operator+(const Object& rhs) const;
 
-		friend Object operator*(const Object& lhs, const Object& rhs);
+		Object operator-(const Object& rhs) const;
 
-		friend Object operator/(const Object& lhs, const Object& rhs);
+		Object operator*(const Object& rhs) const;
 
-		friend Object operator%(const Object& lhs, const Object& rhs);
+		Object operator/(const Object& rhs) const;
 
-		friend bool operator==(const Object& lhs, const Object& rhs);
+		Object operator%(const Object& rhs) const;
 
-		friend bool operator!=(const Object& lhs, const Object& rhs);
+		bool operator==(const Object& rhs) const;
 
-		friend bool operator>(const Object& lhs, const Object& rhs);
+		bool operator!=(const Object& rhs) const;
 
-		friend bool operator>=(const Object& lhs, const Object& rhs);
+		bool operator>(const Object& rhs) const;
 
-		friend bool operator<(const Object& lhs, const Object& rhs);
+		bool operator>=(const Object& rhs) const;
 
-		friend bool operator<=(const Object& lhs, const Object& rhs);
+		bool operator<(const Object& rhs) const;
+
+		bool operator<=(const Object& rhs) const;
 
 		Object operator-() const; // 取反
 		Object operator!() const; // 取非

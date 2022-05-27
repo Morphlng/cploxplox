@@ -208,19 +208,27 @@ namespace CXX {
 		}
 	}
 
-	Object operator+(const Object& lhs, const Object& rhs)
+	bool Object::isSameType(const Object& rhs, ObjectType expected) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
+		if (rhs.type != this->type)
+			return false;
+
+		return this->type == expected;
+	}
+
+	Object Object::operator+(const Object& rhs) const
+	{
+		if (isSameType(rhs, ObjectType::NUMBER))
 		{
-			return Object(lhs.getNumber() + rhs.getNumber());
+			return Object(this->getNumber() + rhs.getNumber());
 		}
-		else if (lhs.isString() && rhs.isString())
+		else if (isSameType(rhs, ObjectType::STRING))
 		{
-			return Object(std::get<std::string>(lhs.value) + std::get<std::string>(rhs.value));
+			return Object(std::get<std::string>(this->value) + std::get<std::string>(rhs.value));
 		}
-		else if (lhs.isInstance())
+		else if (this->isInstance())
 		{
-			std::shared_ptr<Instance> left = lhs.getInstance();
+			std::shared_ptr<Instance> left = this->getInstance();
 			if (auto func = left->get("__add__"); !func.isNil())
 				return func.getCallable()->call(Runner::interpreter, { rhs });
 			else
@@ -230,21 +238,21 @@ namespace CXX {
 		}
 		else if (rhs.isInstance())
 		{
-			return rhs + lhs; // 使用上面lhs+rhs的方法处理
+			return rhs + *this; // 使用上面lhs+rhs的方法处理
 		}
 		else
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '+' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '+' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 	}
 
-	Object operator-(const Object& lhs, const Object& rhs)
+	Object Object::operator-(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
-			return Object(lhs.getNumber() - rhs.getNumber());
-		else if (lhs.isInstance())
+		if (isSameType(rhs, ObjectType::NUMBER))
+			return Object(this->getNumber() - rhs.getNumber());
+		else if (this->isInstance())
 		{
-			std::shared_ptr<Instance> left = lhs.getInstance();
+			std::shared_ptr<Instance> left = this->getInstance();
 			if (auto func = left->get("__sub__"); !func.isNil())
 				return func.getCallable()->call(Runner::interpreter, { rhs });
 			else
@@ -254,24 +262,24 @@ namespace CXX {
 		}
 		else if (rhs.isInstance())
 		{
-			return rhs - lhs; // 使用上面lhs+rhs的方法处理
+			return rhs - *this; // 使用上面lhs-rhs的方法处理
 		}
 		else
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '-' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '-' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 	}
 
-	Object operator*(const Object& lhs, const Object& rhs)
+	Object Object::operator*(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
-			return Object(lhs.getNumber() * rhs.getNumber());
-		else if ((lhs.isNumber() && rhs.isString()) || (rhs.isNumber() && lhs.isString()))
+		if (isSameType(rhs, ObjectType::NUMBER))
+			return Object(this->getNumber() * rhs.getNumber());
+		else if ((this->isNumber() && rhs.isString()) || (rhs.isNumber() && this->isString()))
 		{
-			std::string origin = lhs.isString() ? lhs.getString() : rhs.getString();
+			std::string origin = this->isString() ? this->getString() : rhs.getString();
 			std::string result = origin;
 
-			size_t times = lhs.isNumber() ? (size_t)lhs.getNumber() : (size_t)rhs.getNumber();
+			size_t times = this->isNumber() ? (size_t)this->getNumber() : (size_t)rhs.getNumber();
 
 			for (size_t i = 1; i < times; i++)
 			{
@@ -279,9 +287,9 @@ namespace CXX {
 			}
 			return Object(result);
 		}
-		else if (lhs.isInstance())
+		else if (this->isInstance())
 		{
-			std::shared_ptr<Instance> left = lhs.getInstance();
+			std::shared_ptr<Instance> left = this->getInstance();
 			if (auto func = left->get("__mul__"); !func.isNil())
 				return func.getCallable()->call(Runner::interpreter, { rhs });
 			else
@@ -291,19 +299,19 @@ namespace CXX {
 		}
 		else if (rhs.isInstance())
 		{
-			return rhs * lhs; // 使用上面lhs+rhs的方法处理
+			return rhs * (*this); // 使用上面lhs*rhs的方法处理
 		}
 		else
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '*' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '*' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 	}
 
-	Object operator/(const Object& lhs, const Object& rhs)
+	Object Object::operator/(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
+		if (isSameType(rhs, ObjectType::NUMBER))
 		{
-			double left = lhs.getNumber(), right = rhs.getNumber();
+			double left = this->getNumber(), right = rhs.getNumber();
 			if (right == 0.0)
 			{
 				throw RuntimeError(Runner::pos_start, Runner::pos_end, "Divided by 0!");
@@ -311,9 +319,9 @@ namespace CXX {
 
 			return Object(left / right);
 		}
-		else if (lhs.isInstance())
+		else if (this->isInstance())
 		{
-			std::shared_ptr<Instance> left = lhs.getInstance();
+			std::shared_ptr<Instance> left = this->getInstance();
 			if (auto func = left->get("__div__"); !func.isNil())
 				return func.getCallable()->call(Runner::interpreter, { rhs });
 			else
@@ -323,25 +331,25 @@ namespace CXX {
 		}
 		else if (rhs.isInstance())
 		{
-			return rhs / lhs; // 使用上面lhs+rhs的方法处理
+			return rhs / (*this); // 使用上面lhs+rhs的方法处理
 		}
 		else
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '/' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '/' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 	}
 
-	Object operator%(const Object& lhs, const Object& rhs)
+	Object Object::operator%(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
+		if (isSameType(rhs, ObjectType::NUMBER))
 		{
-			long left = (long)lhs.getNumber(), right = (long)rhs.getNumber();
+			long left = (long)this->getNumber(), right = (long)rhs.getNumber();
 
 			return Object((double)(left % right));
 		}
-		else if (lhs.isInstance())
+		else if (this->isInstance())
 		{
-			std::shared_ptr<Instance> left = lhs.getInstance();
+			std::shared_ptr<Instance> left = this->getInstance();
 			if (auto func = left->get("__mod__"); !func.isNil())
 				return func.getCallable()->call(Runner::interpreter, { rhs });
 			else
@@ -351,43 +359,43 @@ namespace CXX {
 		}
 		else if (rhs.isInstance())
 		{
-			return rhs % lhs; // 使用上面lhs+rhs的方法处理
+			return rhs % (*this); // 使用上面lhs+rhs的方法处理
 		}
 		else
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '%' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '%' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 	}
 
-	bool operator==(const Object& lhs, const Object& rhs)
+	bool Object::operator==(const Object& rhs) const
 	{
-		if (lhs.type != rhs.type)
+		if (this->type != rhs.type)
 			return false;
 
-		switch (lhs.type)
+		switch (this->type)
 		{
 		case ObjectType::NIL:
 			return true;
 
 		case ObjectType::BOOL:
-			return lhs.getBoolean() == rhs.getBoolean();
+			return this->getBoolean() == rhs.getBoolean();
 
 		case ObjectType::NUMBER:
-			return lhs.getNumber() == rhs.getNumber();
+			return this->getNumber() == rhs.getNumber();
 
 		case ObjectType::STRING:
 			// 这里不使用getString，否则会进行string的拷贝
 			// 严重影响性能
-			return std::get<std::string>(lhs.value) == std::get<std::string>(rhs.value);
+			return std::get<std::string>(this->value) == std::get<std::string>(rhs.value);
 
 		case ObjectType::CALLABLE:
 			// shared_ptr同理，拷贝会造成atomic计数器+1
 			// 用时更甚
-			return std::get<CallablePtr>(lhs.value) == std::get<CallablePtr>(rhs.value);
+			return std::get<CallablePtr>(this->value) == std::get<CallablePtr>(rhs.value);
 
 		case ObjectType::INSTANCE:
 		{
-			auto& linstance = std::get<InstancePtr>(lhs.value);
+			auto& linstance = std::get<InstancePtr>(this->value);
 			if (linstance == std::get<InstancePtr>(rhs.value))
 				return true;
 
@@ -408,55 +416,55 @@ namespace CXX {
 		}
 	}
 
-	bool operator!=(const Object& lhs, const Object& rhs)
+	bool Object::operator!=(const Object& rhs) const
 	{
-		return !(lhs == rhs);
+		return !((*this) == rhs);
 	}
 
-	bool operator>(const Object& lhs, const Object& rhs)
+	bool Object::operator>(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
+		if (isSameType(rhs, ObjectType::NUMBER))
 		{
-			return lhs.getNumber() > rhs.getNumber();
+			return this->getNumber() > rhs.getNumber();
 		}
-		else if (lhs.isString() && rhs.isString())
+		else if (isSameType(rhs, ObjectType::STRING))
 		{
-			return std::get<std::string>(lhs.value) > std::get<std::string>(rhs.value);
+			return std::get<std::string>(this->value) > std::get<std::string>(rhs.value);
 		}
 		else
 		{
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '>' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '>' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 		}
 	}
 
-	bool operator>=(const Object& lhs, const Object& rhs)
+	bool Object::operator>=(const Object& rhs) const
 	{
-		return lhs > rhs || lhs == rhs;
+		return (*this) > rhs || (*this) == rhs;
 	}
 
-	bool operator<(const Object& lhs, const Object& rhs)
+	bool Object::operator<(const Object& rhs) const
 	{
-		if (lhs.isNumber() && rhs.isNumber())
+		if (isSameType(rhs, ObjectType::NUMBER))
 		{
-			return lhs.getNumber() < rhs.getNumber();
+			return this->getNumber() < rhs.getNumber();
 		}
-		else if (lhs.isString() && rhs.isString())
+		else if (isSameType(rhs, ObjectType::STRING))
 		{
-			return std::get<std::string>(lhs.value) < std::get<std::string>(rhs.value);
+			return std::get<std::string>(this->value) < std::get<std::string>(rhs.value);
 		}
 		else
 		{
 			throw RuntimeError(Runner::pos_start, Runner::pos_end,
-				format("Illegal operator '<' for operands type(%s) and type(%s)", ObjectTypeName(lhs.type),
+				format("Illegal operator '<' for operands type(%s) and type(%s)", ObjectTypeName(this->type),
 					ObjectTypeName(rhs.type)));
 		}
 	}
 
-	bool operator<=(const Object& lhs, const Object& rhs)
+	bool Object::operator<=(const Object& rhs) const
 	{
-		return lhs < rhs || lhs == rhs;
+		return (*this) < rhs || (*this) == rhs;
 	}
 
 	Object Object::operator-() const

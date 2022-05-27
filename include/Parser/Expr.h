@@ -311,15 +311,15 @@ namespace CXX {
 	class RetrieveExpr : public Expr
 	{
 	public:
-		enum class HolderType
+		enum class OpType
 		{
-			INSTANCE,
-			LIST
+			DOT,
+			BRACKET
 		};
 
-		RetrieveExpr(ExprPtr expr, const Token& identifier, HolderType type = HolderType::INSTANCE);
+		RetrieveExpr(ExprPtr expr, const Token& identifier, OpType type = OpType::DOT);
 
-		RetrieveExpr(ExprPtr expr, ExprPtr index, HolderType type = HolderType::LIST);
+		RetrieveExpr(ExprPtr expr, ExprPtr index, OpType type = OpType::BRACKET);
 
 		Object accept(ExprVisitor& visitor) override;
 
@@ -328,18 +328,20 @@ namespace CXX {
 	public:
 		ExprPtr holder;
 		Token identifier; // 从对象中取元素，使用identifier
-		ExprPtr index;	  // 从列表中取元素，使用index(表达式，解析完应为Number)
-		HolderType type;
+		ExprPtr index;	  // 从列表中取元素，则为Number；否则应为string
+		OpType type;
 	};
 
 	class SetExpr : public Expr
 	{
+		using OpType = RetrieveExpr::OpType;
+
 	public:
 		SetExpr(ExprPtr expr, const Token& identifier, const Token& operation, ExprPtr value,
-			RetrieveExpr::HolderType type = RetrieveExpr::HolderType::INSTANCE);
+			OpType type = OpType::DOT);
 
 		SetExpr(ExprPtr expr, ExprPtr index, const Token& operation, ExprPtr value,
-			RetrieveExpr::HolderType type = RetrieveExpr::HolderType::LIST);
+			OpType type = OpType::BRACKET);
 
 		Object accept(ExprVisitor& visitor) override;
 
@@ -348,10 +350,10 @@ namespace CXX {
 	public:
 		ExprPtr holder;
 		Token identifier; // 从对象中取元素，使用identifier
-		ExprPtr index;	  // 从列表中取元素，使用index(表达式，解析完应为Number)
+		ExprPtr index;	  // 从列表中取元素，则为Number；否则应为string
 		Token operation;  // +=、-=、*=、/=、=
 		ExprPtr value;
-		RetrieveExpr::HolderType type;
+		OpType type;
 	};
 
 	class LambdaExpr : public Expr, public std::enable_shared_from_this<LambdaExpr>

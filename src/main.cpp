@@ -46,6 +46,7 @@ void ParseArgs(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	if (argc == 1)
+		// CXX::Runner::runTranspile();
 		CXX::Runner::runRepl();
 	else
 		ParseArgs(argc, argv);

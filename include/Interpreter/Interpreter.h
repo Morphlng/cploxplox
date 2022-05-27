@@ -1,5 +1,6 @@
 #pragma once
 #include "Common/typedefs.h"
+#include "Common/utils.h"
 #include "Parser/Expr.h"
 #include "Parser/Stmt.h"
 #include "Interpreter/Object.h"
@@ -23,6 +24,8 @@ namespace CXX {
 		void execute(Stmt* pStmt);
 
 		Object getReturn();
+
+		std::unique_ptr<Finally> toggleRepl();
 
 	public:
 		void visit(const ExpressionStmt* expressionStmt) override;

@@ -262,7 +262,7 @@ namespace CXX {
 		return result;
 	}
 
-	RetrieveExpr::RetrieveExpr(ExprPtr expr, const Token& identifier, HolderType type) : holder(std::move(expr)),
+	RetrieveExpr::RetrieveExpr(ExprPtr expr, const Token& identifier, OpType type) : holder(std::move(expr)),
 		identifier(identifier),
 		type(type)
 	{
@@ -270,7 +270,7 @@ namespace CXX {
 		set_pos(this->holder->pos_start, this->identifier.pos_end);
 	}
 
-	RetrieveExpr::RetrieveExpr(ExprPtr expr, ExprPtr index, HolderType type) : holder(std::move(expr)), index(std::move(index)), type(type)
+	RetrieveExpr::RetrieveExpr(ExprPtr expr, ExprPtr index, OpType type) : holder(std::move(expr)), index(std::move(index)), type(type)
 	{
 		this->exprType = ExprType::Retrieve;
 		set_pos(this->holder->pos_start, this->index->pos_end);
@@ -286,11 +286,11 @@ namespace CXX {
 		std::string form;
 		switch (type)
 		{
-		case HolderType::INSTANCE:
+		case OpType::DOT:
 			form = "Retrieve: %s.%s";
 			break;
 
-		case HolderType::LIST:
+		case OpType::BRACKET:
 			form = "Retrieve: %s[%s]";
 			break;
 
@@ -302,14 +302,14 @@ namespace CXX {
 	}
 
 	SetExpr::SetExpr(ExprPtr expr, const Token& identifier, const Token& operation, ExprPtr value,
-		RetrieveExpr::HolderType type) : holder(std::move(expr)), identifier(identifier), operation(operation),
+		OpType type) : holder(std::move(expr)), identifier(identifier), operation(operation),
 		value(std::move(value)), type(type)
 	{
 		this->exprType = ExprType::Set;
 		set_pos(this->holder->pos_start, this->value->pos_end);
 	}
 
-	SetExpr::SetExpr(ExprPtr expr, ExprPtr index, const Token& operation, ExprPtr value, RetrieveExpr::HolderType type) : holder(std::move(expr)), index(std::move(index)), operation(operation), value(std::move(value)), type(type)
+	SetExpr::SetExpr(ExprPtr expr, ExprPtr index, const Token& operation, ExprPtr value, OpType type) : holder(std::move(expr)), index(std::move(index)), operation(operation), value(std::move(value)), type(type)
 	{
 		this->exprType = ExprType::Set;
 		set_pos(this->holder->pos_start, this->value->pos_end);
@@ -325,11 +325,11 @@ namespace CXX {
 		std::string form;
 		switch (type)
 		{
-		case RetrieveExpr::HolderType::INSTANCE:
+		case OpType::DOT:
 			form = "Set: %s.%s %s %s";
 			break;
 
-		case RetrieveExpr::HolderType::LIST:
+		case OpType::BRACKET:
 			form = "Set: %s[%s] %s %s";
 			break;
 

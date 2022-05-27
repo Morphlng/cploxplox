@@ -31,9 +31,9 @@ namespace CXX
 		}
 	}
 
-	void Interpreter::interpret(std::vector<StmtPtr>&& statements)
+	void Interpreter::interpret(std::vector<StmtPtr> &&statements)
 	{
-		for (auto& stmt : statements)
+		for (auto &stmt : statements)
 		{
 			execute(stmt.get());
 			stmt.reset();
@@ -108,13 +108,7 @@ namespace CXX
 	void Interpreter::visit(const BlockStmt *blockStmt)
 	{
 		// 循环体，判断语句的输出控制
-		std::unique_ptr<Finally> task{nullptr};
-		if (replEcho)
-		{
-			replEcho = false;
-			task = std::make_unique<Finally>([&]()
-											 { replEcho = true; });
-		}
+		auto task = toggleRepl();
 
 		ScopedContext scope(context, std::make_shared<Context>(context));
 
@@ -404,6 +398,8 @@ namespace CXX
 
 	Object Interpreter::visit(const IncrementExpr *incrementExpr)
 	{
+		using OpType = RetrieveExpr::OpType;
+
 		Object prev = interpret(incrementExpr->holder.get());
 		if (!prev.isNumber())
 			throw RuntimeError(incrementExpr->holder->pos_start, incrementExpr->holder->pos_end,
@@ -420,7 +416,7 @@ namespace CXX
 		{
 			auto retrieve = static_cast<RetrieveExpr *>(incrementExpr->holder.get());
 			Object holder = interpret(retrieve->holder.get());
-			if (Classifier::belongClass(holder, "List") && retrieve->type == RetrieveExpr::HolderType::LIST)
+			if (Classifier::belongClass(holder, "List") && retrieve->type == OpType::BRACKET)
 			{
 				Object index = interpret(retrieve->index.get());
 				if (!index.isNumber())
@@ -429,9 +425,17 @@ namespace CXX
 				Object &oldVal = listAt(holder, index);
 				oldVal = result;
 			}
-			else if (holder.isInstance() && retrieve->type == RetrieveExpr::HolderType::INSTANCE)
+			else if (holder.isInstance())
 			{
-				holder.getInstance()->set(retrieve->identifier, result);
+				if (retrieve->type == OpType::DOT)
+					holder.getInstance()->set(retrieve->identifier, result);
+				else
+				{
+					Object attr = interpret(retrieve->index.get());
+					if (!attr.isString())
+						throw RuntimeError(retrieve->index->pos_start, retrieve->index->pos_end, "Attr should be a string");
+					holder.getInstance()->set(attr.getString(), result);
+				}
 			}
 		}
 
@@ -445,6 +449,8 @@ namespace CXX
 
 	Object Interpreter::visit(const DecrementExpr *decrementExpr)
 	{
+		using OpType = RetrieveExpr::OpType;
+
 		Object prev = interpret(decrementExpr->holder.get());
 		if (!prev.isNumber())
 		{
@@ -463,7 +469,7 @@ namespace CXX
 		{
 			auto retrieve = static_cast<RetrieveExpr *>(decrementExpr->holder.get());
 			Object holder = interpret(retrieve->holder.get());
-			if (Classifier::belongClass(holder, "List") && retrieve->type == RetrieveExpr::HolderType::LIST)
+			if (Classifier::belongClass(holder, "List") && retrieve->type == OpType::BRACKET)
 			{
 				Object index = interpret(retrieve->index.get());
 				if (!index.isNumber())
@@ -472,9 +478,17 @@ namespace CXX
 				Object &oldVal = listAt(holder, index);
 				oldVal = result;
 			}
-			else if (holder.isInstance() && retrieve->type == RetrieveExpr::HolderType::INSTANCE)
+			else if (holder.isInstance())
 			{
-				holder.getInstance()->set(retrieve->identifier, result);
+				if (retrieve->type == OpType::DOT)
+					holder.getInstance()->set(retrieve->identifier, result);
+				else
+				{
+					Object attr = interpret(retrieve->index.get());
+					if (!attr.isString())
+						throw RuntimeError(retrieve->index->pos_start, retrieve->index->pos_end, "Attr should be a string");
+					holder.getInstance()->set(attr.getString(), result);
+				}
 			}
 		}
 
@@ -515,13 +529,7 @@ namespace CXX
 		Callable *prev = currentFunction;
 		currentFunction = callable.get();
 
-		std::unique_ptr<Finally> task{nullptr};
-		if (replEcho)
-		{
-			replEcho = false;
-			task = std::make_unique<Finally>([&]()
-											 { replEcho = true; });
-		}
+		auto task = toggleRepl();
 
 		Object result = callable->call(*this, args);
 		currentFunction = prev;
@@ -531,8 +539,10 @@ namespace CXX
 
 	Object Interpreter::visit(const RetrieveExpr *retrieveExpr)
 	{
+		using OpType = RetrieveExpr::OpType;
+
 		Object holder = interpret(retrieveExpr->holder.get());
-		if (Classifier::belongClass(holder, "List") && retrieveExpr->type == RetrieveExpr::HolderType::LIST)
+		if (Classifier::belongClass(holder, "List") && retrieveExpr->type == OpType::BRACKET)
 		{
 			Object index = interpret(retrieveExpr->index.get());
 			if (!index.isNumber())
@@ -542,34 +552,55 @@ namespace CXX
 
 			return listAt(holder, index);
 		}
-		else if (holder.isInstance() && retrieveExpr->type == RetrieveExpr::HolderType::INSTANCE)
+		else if (holder.isInstance())
 		{
 			// 目前的设计是，如果对象没有索取的属性，则返回Nil
 			// 这种设计和JavaScript一致，但容易造成bug
-			return holder.getInstance()->get(retrieveExpr->identifier);
+			if (retrieveExpr->type == OpType::DOT)
+				return holder.getInstance()->get(retrieveExpr->identifier);
+			else
+			{
+				Object attr = interpret(retrieveExpr->index.get());
+				if (!attr.isString())
+				{
+					throw RuntimeError(retrieveExpr->index->pos_start, retrieveExpr->index->pos_end, "attribute should be a string");
+				}
+
+				return holder.getInstance()->get(attr.getString());
+			}
 		}
 
-		const char *op = retrieveExpr->type == RetrieveExpr::HolderType::INSTANCE ? "." : "[]";
+		const char *op = retrieveExpr->type == OpType::DOT ? "." : "[]";
 		throw RuntimeError(retrieveExpr->pos_start, retrieveExpr->pos_end,
 						   format("Cannot apply %s to object type(%s)", op, ObjectTypeName(holder.type)));
 	}
 
 	Object Interpreter::visit(const SetExpr *setExpr)
 	{
+		using OpType = RetrieveExpr::OpType;
+
 		Object holder = interpret(setExpr->holder.get());
 
-		if (holder.isInstance() && setExpr->type == RetrieveExpr::HolderType::INSTANCE)
+		if (holder.isInstance())
 		{
+			if (setExpr->type == OpType::BRACKET)
+			{
+				Object attr = interpret(setExpr->index.get());
+				if (!attr.isString())
+				{
+					throw RuntimeError(setExpr->index->pos_start, setExpr->index->pos_end, "Attribute should be a string");
+				}
+				const_cast<SetExpr *>(setExpr)->identifier.lexeme = attr.getString();
+			}
+
 			Object prev = holder.getInstance()->get(setExpr->identifier);
 			// 要赋予或改变的新value
 			Object value = interpret(setExpr->value.get());
-
 			value = handleAssign(prev, value, setExpr->operation.type);
-
 			holder.getInstance()->set(setExpr->identifier, value);
 			return value;
 		}
-		else if (Classifier::belongClass(holder, "List") && setExpr->type == RetrieveExpr::HolderType::LIST)
+		else if (Classifier::belongClass(holder, "List") && setExpr->type == OpType::BRACKET)
 		{
 			// 这里为了拿到引用而不是复制，所以重复了Retrieve中的代码
 			Object index = interpret(setExpr->index.get());
@@ -587,6 +618,10 @@ namespace CXX
 			prev = value;
 			return value;
 		}
+
+		const char *op = setExpr->type == OpType::DOT ? "." : "[]";
+		throw RuntimeError(setExpr->pos_start, setExpr->pos_end,
+						   format("Cannot apply %s to object type(%s)", op, ObjectTypeName(holder.type)));
 
 		return Object();
 	}
@@ -679,11 +714,11 @@ namespace CXX
 		auto StringClass = String::getSingleton();
 		auto ListClass = List::getSingleton();
 
-		std::vector<Object> built_in_functions = { 
+		std::vector<Object> built_in_functions = {
 			Object(std::move(clock)), Object(std::move(str)), Object(std::move(typo)),
 			Object(std::move(chr)), Object(std::move(getc)), Object(std::move(exit)),
 			Object(std::move(print)), Object(std::move(getattr)), Object(std::move(loadlib)),
-			Object(std::move(StringClass)), Object(std::move(ListClass)) };
+			Object(std::move(StringClass)), Object(std::move(ListClass))};
 
 		for (auto const &func : built_in_functions)
 		{
@@ -741,20 +776,26 @@ namespace CXX
 			throw RuntimeError(filepath.pos_start, filepath.pos_end, "Error in loading Module from file:" + filepath.lexeme);
 		}
 
+#ifdef USE_STRING_VIEW
+		static std::vector<std::string> TEXT;
+		TEXT.push_back(std::move(fileContent.value()));
+		Lexer lexer(filepath.lexeme, TEXT.back());
+#else
 		Lexer lexer(filepath.lexeme, *fileContent);
+#endif
 		std::vector<Token> tokens;
 		try
 		{
-			tokens = lexer.tokenize();
+			tokens = std::move(lexer.tokenize());
 		}
-		catch (const Error &e)
+		catch (const std::exception &e)
 		{
 			// lexing error
 			ErrorReporter::report(e);
 			return nullptr;
 		}
 
-		Parser parser(tokens);
+		Parser parser(std::move(tokens));
 		std::vector<StmtPtr> stmts = parser.parse();
 		if (ErrorReporter::errorCount != 0)
 		{
@@ -781,16 +822,27 @@ namespace CXX
 		globalContext = moduleEnv;
 		context = globalContext;
 
-		Finally task([&]() {
+		Finally task([&]()
+					 {
 			globalContext.swap(global_bak);
-			context.swap(context_bak);
-		});
+			context.swap(context_bak); });
 
 		interpret(blockStmt->statements);
 
 		moduleEnv->variables.erase("__name__");
 
 		return std::make_shared<Module>(moduleEnv->variables);
+	}
+
+	std::unique_ptr<Finally> Interpreter::toggleRepl()
+	{
+		if (!replEcho)
+			return nullptr;
+
+		replEcho = false;
+
+		return std::make_unique<Finally>([&]()
+										 { replEcho = true; });
 	}
 
 	Object Interpreter::getReturn()

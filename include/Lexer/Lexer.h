@@ -7,18 +7,17 @@
 #include <unordered_map>
 #include <optional>
 
-namespace CXX {
+namespace CXX
+{
 
 	class Lexer
 	{
 	public:
-		Lexer(const std::string& filename, const std::string& text);
+		Lexer(const std::string &filename, const std::string &text);
 
-		std::vector<Token>& tokenize();
+		std::vector<Token> &tokenize();
 
 		static std::unordered_map<std::string, TokenType> reservedKeywords;
-
-		void reset();
 
 	private:
 		std::string_view text;
@@ -39,7 +38,7 @@ namespace CXX {
 		void make_number();
 
 		void make_optional_token(char expect, TokenType optional, std::string optional_lexeme,
-			TokenType fallback, std::string fallback_lexeme);
+								 TokenType fallback, std::string fallback_lexeme);
 
 		void make_plus_plus();
 

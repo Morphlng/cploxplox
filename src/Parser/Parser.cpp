@@ -7,19 +7,14 @@
 namespace CXX
 {
 
-	Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), tok_idx(-1)
+	Parser::Parser(const std::vector<Token> &tokens) : tokens(tokens), tok_idx(-1)
 	{
 		advance();
 	}
 
-	Parser::Parser(std::vector<Token>&& tokens) : tokens(std::move(tokens)), tok_idx(-1)
+	Parser::Parser(std::vector<Token> &&tokens) : tokens(std::move(tokens)), tok_idx(-1)
 	{
 		advance();
-	}
-
-	void Parser::reset()
-	{
-		tokens.clear();
 	}
 
 	std::vector<StmtPtr> Parser::parse()
@@ -357,7 +352,7 @@ namespace CXX
 			{
 				auto retrieval = std::static_pointer_cast<RetrieveExpr>(expr);
 
-				if (retrieval->type == RetrieveExpr::HolderType::INSTANCE)
+				if (retrieval->type == RetrieveExpr::OpType::DOT)
 				{
 					Token identifier = retrieval->identifier;
 					return std::make_shared<SetExpr>(std::move(retrieval->holder), identifier, op, std::move(rvalue));

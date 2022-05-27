@@ -7,17 +7,16 @@
 #include "Lexer/Token.h"
 #include "Parser/ParsingError.h"
 
-namespace CXX {
+namespace CXX
+{
 
 	class Parser
 	{
 	public:
-		explicit Parser(const std::vector<Token>& tokens);
-		explicit Parser(std::vector<Token>&& tokens);
+		explicit Parser(const std::vector<Token> &tokens);
+		explicit Parser(std::vector<Token> &&tokens);
 
 		~Parser() = default;
-
-		void reset();
 
 		std::vector<StmtPtr> parse();
 
@@ -86,8 +85,8 @@ namespace CXX {
 
 		ExprPtr list_expr();
 
-		ExprPtr bin_op(const std::function<ExprPtr(Parser*)>& funcA, std::initializer_list<TokenType> ops,
-			const std::function<ExprPtr(Parser*)>& funcB);
+		ExprPtr bin_op(const std::function<ExprPtr(Parser *)> &funcA, std::initializer_list<TokenType> ops,
+					   const std::function<ExprPtr(Parser *)> &funcB);
 
 		ExprPtr func_body();
 
@@ -103,16 +102,16 @@ namespace CXX {
 
 		Token previous();
 
-		[[nodiscard]] bool check(const TokenType& type) const;
+		[[nodiscard]] bool check(const TokenType &type) const;
 
-		void expect(const TokenType& type, const std::string& error_message);
+		void expect(const TokenType &type, const std::string &error_message);
 
 		template <typename... Args>
 		bool match(Args... args)
 		{
-			std::initializer_list<bool> results{ check(args)... };
+			std::initializer_list<bool> results{check(args)...};
 			if (std::any_of(std::begin(results), std::end(results), [&](bool type)
-				{ return type; }))
+							{ return type; }))
 			{
 				advance();
 				return true;
@@ -121,7 +120,7 @@ namespace CXX {
 			return false;
 		}
 
-		bool match(const std::initializer_list<TokenType>& types);
+		bool match(const std::initializer_list<TokenType> &types);
 
 		void synchronize();
 	};

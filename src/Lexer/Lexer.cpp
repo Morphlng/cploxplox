@@ -2,10 +2,10 @@
 #include "Common/utils.h"
 #include <cctype> // for isalpha() & isdigit()
 
-namespace CXX {
+namespace CXX
+{
 
-	Lexer::Lexer(const std::string& filename, const std::string& text) :
-		text(text), filename(filename), pos(-1, 0, -1, filename, text), current_char('\0')
+	Lexer::Lexer(const std::string &filename, const std::string &text) : text(text), filename(filename), pos(-1, 0, -1, filename, text), current_char('\0')
 	{
 		advance();
 	}
@@ -19,7 +19,7 @@ namespace CXX {
 			this->current_char = '\0';
 	}
 
-	std::vector<Token>& Lexer::tokenize()
+	std::vector<Token> &Lexer::tokenize()
 	{
 		while (current_char != '\0')
 		{
@@ -143,11 +143,6 @@ namespace CXX {
 		return tokens;
 	}
 
-	void Lexer::reset()
-	{
-		tokens.clear();
-	}
-
 	void Lexer::skip_comment()
 	{
 		advance(); // 跳过#
@@ -175,7 +170,7 @@ namespace CXX {
 		// 上一个字符是\\，则下一个n应被转换为\n；以此类推
 		std::unordered_map<char, char> escape_characters{
 			{'n', '\n'},
-			{'t', '\t'} };
+			{'t', '\t'}};
 
 		while (current_char != '\0' && (current_char != '\"' || escape))
 		{
@@ -267,7 +262,7 @@ namespace CXX {
 	}
 
 	void Lexer::make_optional_token(char expect, TokenType optional, std::string optional_lexeme, TokenType fallback,
-		std::string fallback_lexeme)
+									std::string fallback_lexeme)
 	{
 		Position start = pos;
 		advance();
@@ -345,6 +340,6 @@ namespace CXX {
 		{"or", TokenType::OR},
 		{"import", TokenType::IMPORT},
 		{"as", TokenType::AS},
-		{"from", TokenType::FROM} };
+		{"from", TokenType::FROM}};
 
 }
